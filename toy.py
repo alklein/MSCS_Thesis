@@ -20,7 +20,8 @@ class toyData:
 
         self.M = M
         self.eta = eta
-        self.data = None
+        self.samples = None
+        self.functions = None
 
         if verbose:
             print '\n >>> [verbose] New toyData object made with M =',str(M) + ',','eta =',eta,'\n'
@@ -36,8 +37,8 @@ class toyData:
     each instance is a tuple of the form [in, out]_i,     
     where in and out are length-eta lists of scalar values.
     """
-    def make_data(self):
-        data = []
+    def make_samples(self):
+        samples = []
         for i in range(self.M):
             
             # mu_1, mu_2 ~ Unif[0, 1]
@@ -50,9 +51,13 @@ class toyData:
 
             # TODO: create and append new instance
 
-        data = np.array(data)
-        self.data = data
-        return data
+        samples = np.array(samples)
+        self.samples = samples
+        return samples
+
+    def make_functions(self):
+        # use self.samples
+        print ' >>> TODO: implement make_functions()'
 
     """
     Debugging method.
@@ -65,7 +70,7 @@ class toyData:
 
 
 """
-Defaults to running built-in tests.
+Demos code and runs built-in tests.
 """
 if __name__ == '__main__':
 
@@ -77,6 +82,6 @@ if __name__ == '__main__':
     print ' > [debug] Checking param values'
     tD.print_params()
     print ' > [debug] Generating toy data'
-    data = tD.make_data()
-    print ' > [debug] Length of toy data:',len(data)
+    data = tD.make_samples()
+    print ' > [debug] Number of toy training instances:',len(data)
     print
