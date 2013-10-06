@@ -14,15 +14,12 @@ import numpy as np
 class toyData:
 
     """
-    makes M <input, output> distribution pairs.
-    each is sampled eta times.
+    Makes new toyData object.
     """
     def __init__(self, M=100, eta=100, verbose=True):
 
         self.M = M
         self.eta = eta
-        if verbose:
-            print '\n >>> [verbose] Making new toy data with M =',M,', eta =',eta,'\n'
         
         # mu_1, mu_2 ~ Unif[0, 1]
         self.mu_1 = np.random.rand()
@@ -32,6 +29,23 @@ class toyData:
         self.sig_1 = .05*(np.random.rand() + 1)
         self.sig_2 = .05*(np.random.rand() + 1)
 
+        self.data = None
+
+        if verbose:
+            print '\n >>> [verbose] New toyData object made with M =',str(M) + ',','eta =',eta,'\n'
+        
+    """
+    Makes M <input, output> distribution pairs.
+    Each is sampled eta times.
+    """
+    def make_data(self):
+        data = []
+        self.data = data
+        return data
+
+    """
+    Debugging method.
+    """
     def print_params(self):
         print
         print ' >>> [debug] mu_1:',self.mu_1
@@ -42,9 +56,18 @@ class toyData:
 
 
 """
-Built-in tests.
+Defaults to running built-in tests.
 """
 if __name__ == '__main__':
 
-    data = toyData()
-    data.print_params()
+    print
+    print ' > RUNNING BUILT-IN TESTS'
+    print
+    print ' > [debug] Making new toyData object'
+    tD = toyData()
+    print ' > [debug] Checking param values'
+    tD.print_params()
+    print ' > [debug] Generating toy data'
+    data = tD.make_data()
+    print ' >>> [debug] Length of toy data:',len(data)
+    print
