@@ -8,29 +8,27 @@
 
 __author__ = "Andrea Klein"
 
+import math
 import numpy as np
 
-# TODO: implement
-def erf(x):
-    return -1
 
-class norm_pdf_dist(mu, sig):
+class norm_pdf_dist:
     
     def __init__(self, mu, sig):
         self.mu = mu
         self.sig = sig
 
     def eval(self, x):
-        return () * exp() # TODO
+        return (1./(2*math.pi*self.sig**2)**.5) * math.exp(-(x - self.mu)**2/(2*self.sig**2))
 
-def norm_cdf_dist(mu, sig):
+class norm_cdf_dist:
     
     def __init__(self, mu, sig):
         self.mu = mu
         self.sig = sig
 
     def eval(self, x):
-        return .5 * (1 + erf((x - self.mu) / ((2 * self.sig**2)**.5)))
+        return .5 * (1 + math.erf((x - self.mu) / ((2 * self.sig**2)**.5)))
 
 class g_dist:
 
