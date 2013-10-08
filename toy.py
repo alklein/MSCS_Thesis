@@ -10,6 +10,57 @@ __author__ = "Andrea Klein"
 
 import numpy as np
 
+# TODO: implement
+def erf(x):
+    return -1
+
+class norm_pdf_dist(mu, sig):
+    
+    def __init__(self, mu, sig):
+        self.mu = mu
+        self.sig = sig
+
+    def eval(self, x):
+        return () * exp() # TODO
+
+def norm_cdf_dist(mu, sig):
+    
+    def __init__(self, mu, sig):
+        self.mu = mu
+        self.sig = sig
+
+    def eval(self, x):
+        return .5 * (1 + erf((x - self.mu) / ((2 * self.sig**2)**.5)))
+
+class g_dist:
+
+    def __init__(self, mu, sig):
+        self.mu = mu
+        self.sig = sig
+        self.phi = norm_pdf_dist(mu, sig)
+        self.PHI1 = norm_cdf_dist(mu, sig) 
+        self.PHI2 = norm_cdf_dist(mu, sig) 
+
+    def eval(self, x):
+        return (1./self.sig) * ((self.phi.eval((x - self.mu)/self.sig)) / (self.PHI1.eval((1. - self.mu)/self.sig) - self.PHI2.eval(-self.mu/self.sig)))
+
+class p_dist:
+
+    def __init__(self, mu_1, mu_2, sig_1, sig_2):
+        self.g1 = g_dist(mu_1, sig_1)
+        self.g2 = g_dist(mu_2, sig_2)
+
+    def eval(self, x):
+        return .5 * (self.g1.eval(x) + self.g2.eval(x))
+
+class q_dist:
+
+    def __init__(self, mu_1, mu_2, sig_1, sig_2):
+        self.g1 = g_dist(1 - mu_1, sig_1)
+        self.g2 = g_dist(1 - mu_2, sig_2)
+
+    def eval(self, x):
+        return .5 * (self.g1.eval(x) + self.g2.eval(x))
 
 class toyData:
 
