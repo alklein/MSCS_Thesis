@@ -12,6 +12,10 @@ import math
 import numpy as np
 
 
+# TODO: implement
+def rejection_sample(pdf, count):
+    return []
+
 class norm_pdf_dist:
     
     def __init__(self, mu, sig):
@@ -98,7 +102,12 @@ class toyData:
             sig_1 = .05*(np.random.rand() + 1)
             sig_2 = .05*(np.random.rand() + 1)
 
-            # TODO: create and append new instance
+            # create and sample probability distributions
+            p = p_dist(mu_1, mu_2, sig_1, sig_2)
+            q = q_dist(mu_1, mu_2, sig_1, sig_2)
+            input_samples = rejection_sample(p.eval, self.eta)
+            output_samples = rejection_sample(q.eval, self.eta)
+            samples.append([input_samples, output_samples])
 
         samples = np.array(samples)
         self.samples = samples
@@ -126,11 +135,13 @@ if __name__ == '__main__':
     print
     print ' > RUNNING BUILT-IN TESTS'
     print
-    print ' > [debug] Making new toyData object'
+    print ' > [debug] Making new toyData object...'
     tD = toyData()
-    print ' > [debug] Checking param values'
+    print ' > [debug] Checking param values...'
     tD.print_params()
-    print ' > [debug] Generating toy data'
+    print ' > [debug] Generating toy data...'
     data = tD.make_samples()
-    print ' > [debug] Number of toy training instances:',len(data)
+    print ' > [debug] Number of toy training instances:', len(data)
+    print ' > [debug] Length of input, output pairs:', len(data[0])
+    print ' > [debug] Number of samples per distribution:', len(data[0][0])
     print
