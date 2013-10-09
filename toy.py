@@ -12,15 +12,17 @@ import math
 import numpy as np
 
 from random import *
-from matplotlib import *
+from pylab import *
 
-def view(dist_class, mu = 0, sig = .5, fig_num=0):    
+def make_fig(dist_class, mu = 0., sig = 1., fig_num=0, xlab=None, ylab=None, tit=None):    
     dist = dist_class(mu, sig)
-    Xs = np.linspace(0., 1., 100)
+    Xs = np.linspace(-5., 5., 100)
     Ys = [dist.eval(X) for X in Xs]
     figure(fig_num)
     plot(Xs, Ys, '-')
-    show()
+    if xlab: xlabel(xlab, fontsize=24)
+    if ylab: ylabel(ylab, fontsize=24)
+    if tit: title(tit, fontsize=30)
 
 def rejection_sample(xmin, xmax, pdf, count):
     results = []
@@ -161,9 +163,13 @@ if __name__ == '__main__':
 
     print
     print ' > RUNNING BUILT-IN TESTS'
+
     print
-    print ' > VIEWING NORM PDF'
-    view(norm_pdf_dist)    
+    print ' > PLOTTING DISTRIBUTIONS'
+    make_fig(norm_pdf_dist, tit='Normal PDF, CDF. Mu=0, Sig=1')    
+    make_fig(norm_cdf_dist)    
+    show()
+    
     print
     print ' > [debug] Making new toyData object...'
     tD = toyData()
