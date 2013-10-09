@@ -14,15 +14,15 @@ import numpy as np
 from random import *
 from pylab import *
 
-def make_fig(dist_class, mu = 0., sig = 1., fig_num=0, xlab=None, ylab=None, tit=None):    
-    dist = dist_class(mu, sig)
-    Xs = np.linspace(-5., 5., 100)
+def make_fig(dist_class, dist=None, mu = 0., sig = 1., xmin = -5., xmax = 5., fig_num=0, xlab=None, ylab=None, tit=None, tit_fontsz=30):    
+    if not dist: dist = dist_class(mu, sig)
+    Xs = np.linspace(xmin, xmax, 100)
     Ys = [dist.eval(X) for X in Xs]
     figure(fig_num)
     plot(Xs, Ys, '-')
     if xlab: xlabel(xlab, fontsize=24)
     if ylab: ylabel(ylab, fontsize=24)
-    if tit: title(tit, fontsize=30)
+    if tit: title(tit, fontsize=tit_fontsz)
 
 def rejection_sample(xmin, xmax, pdf, count):
     results = []
@@ -168,6 +168,9 @@ if __name__ == '__main__':
     print ' > PLOTTING DISTRIBUTIONS'
     make_fig(norm_pdf_dist, tit='Normal PDF, CDF. Mu=0, Sig=1')    
     make_fig(norm_cdf_dist)    
+    make_fig(g_dist, fig_num=1, tit='G Distribution. Mu=0, Sig=1')    
+    make_fig(p_dist, dist=p_dist(.4, .6, .07, .08), xmin=0., xmax=1., fig_num=2, tit='P and Q. Mu1=.4, Mu2=.6, Sig1=.07, Sig2=.08', tit_fontsz=24)
+    make_fig(q_dist, dist=q_dist(.4, .6, .07, .08), xmin=0., xmax=1., fig_num=2)
     show()
     
     print
