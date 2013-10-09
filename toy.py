@@ -2,7 +2,7 @@
 
 """
 @file toy.py
-@brief tools to make and sample toy 1-D distributions
+@brief tools to make, sample, and regress on toy 1-D distributions
 @author Andrea Klein     <alklein@alumni.stanford.edu>
 """
 
@@ -11,10 +11,27 @@ __author__ = "Andrea Klein"
 import math
 import numpy as np
 
+from random import *
+from matplotlib import *
 
-# TODO: implement
-def rejection_sample(pdf, count):
-    return []
+def view(dist_class, mu = 0, sig = .5, fig_num=0):    
+    dist = dist_class(mu, sig)
+    Xs = np.linspace(0., 1., 100)
+    Ys = [dist.eval(X) for X in Xs]
+    figure(fig_num)
+    plot(Xs, Ys, '-')
+    show()
+
+def rejection_sample(xmin, xmax, pdf, count):
+    results = []
+    bns = np.linspace(xmin, xmax, 1000) 
+    fn_max = max([pdf(bns[i]) for i in range(len(bns))])
+    while (len(results) < count):
+        x = uniform(xmin, xmax)
+        h = uniform(0, fn_max)
+        if (h < pdf(x)):
+            results.append(x)
+    return results
 
 class norm_pdf_dist:
     
@@ -44,6 +61,16 @@ class g_dist:
         self.PHI2 = norm_cdf_dist(mu, sig) 
 
     def eval(self, x):
+        # < TEMP
+        print
+        print 'self.mu:',self.mu
+        print 'self.sig:',self.sig
+        print '(1./self.sig):',(1./self.sig)
+        print '(self.phi.eval((x - self.mu)/self.sig)):',(self.phi.eval((x - self.mu)/self.sig))
+        print '(self.PHI1.eval((1. - self.mu)/self.sig)):',(self.PHI1.eval((1. - self.mu)/self.sig))
+        print 'self.PHI2.eval(-self.mu/self.sig)',self.PHI2.eval(-self.mu/self.sig)
+        print
+        # TEMP >
         return (1./self.sig) * ((self.phi.eval((x - self.mu)/self.sig)) / (self.PHI1.eval((1. - self.mu)/self.sig) - self.PHI2.eval(-self.mu/self.sig)))
 
 class p_dist:
@@ -105,8 +132,8 @@ class toyData:
             # create and sample probability distributions
             p = p_dist(mu_1, mu_2, sig_1, sig_2)
             q = q_dist(mu_1, mu_2, sig_1, sig_2)
-            input_samples = rejection_sample(p.eval, self.eta)
-            output_samples = rejection_sample(q.eval, self.eta)
+            input_samples = rejection_sample(0., 1., p.eval, self.eta)
+            output_samples = rejection_sample(0., 1., q.eval, self.eta)
             samples.append([input_samples, output_samples])
 
         samples = np.array(samples)
@@ -134,6 +161,9 @@ if __name__ == '__main__':
 
     print
     print ' > RUNNING BUILT-IN TESTS'
+    print
+    print ' > VIEWING NORM PDF'
+    view(norm_pdf_dist)    
     print
     print ' > [debug] Making new toyData object...'
     tD = toyData()
