@@ -58,22 +58,12 @@ class g_dist:
     def __init__(self, mu, sig):
         self.mu = mu
         self.sig = sig
-        self.phi = norm_pdf_dist(mu, sig)
-        self.PHI1 = norm_cdf_dist(mu, sig) 
-        self.PHI2 = norm_cdf_dist(mu, sig) 
+        self.phi = norm_pdf_dist(0., 1.)
+        PHI = norm_cdf_dist(0., 1.)
+        self.denom = PHI.eval((1. - self.mu)/self.sig) - PHI.eval(-self.mu/self.sig)
 
     def eval(self, x):
-        # < TEMP
-        print
-        print 'self.mu:',self.mu
-        print 'self.sig:',self.sig
-        print '(1./self.sig):',(1./self.sig)
-        print '(self.phi.eval((x - self.mu)/self.sig)):',(self.phi.eval((x - self.mu)/self.sig))
-        print '(self.PHI1.eval((1. - self.mu)/self.sig)):',(self.PHI1.eval((1. - self.mu)/self.sig))
-        print 'self.PHI2.eval(-self.mu/self.sig)',self.PHI2.eval(-self.mu/self.sig)
-        print
-        # TEMP >
-        return (1./self.sig) * ((self.phi.eval((x - self.mu)/self.sig)) / (self.PHI1.eval((1. - self.mu)/self.sig) - self.PHI2.eval(-self.mu/self.sig)))
+        return (1./self.sig) * self.phi.eval((x - self.mu)/self.sig) / self.denom
 
 class p_dist:
 
@@ -165,13 +155,13 @@ if __name__ == '__main__':
     print ' > RUNNING BUILT-IN TESTS'
 
     print
-    print ' > PLOTTING DISTRIBUTIONS'
+    print ' > MAKING DISTRIBUTION PLOTS'
     make_fig(norm_pdf_dist, tit='Normal PDF, CDF. Mu=0, Sig=1')    
     make_fig(norm_cdf_dist)    
     make_fig(g_dist, fig_num=1, tit='G Distribution. Mu=0, Sig=1')    
-    make_fig(p_dist, dist=p_dist(.4, .6, .07, .08), xmin=0., xmax=1., fig_num=2, tit='P and Q. Mu1=.4, Mu2=.6, Sig1=.07, Sig2=.08', tit_fontsz=24)
-    make_fig(q_dist, dist=q_dist(.4, .6, .07, .08), xmin=0., xmax=1., fig_num=2)
-    show()
+    make_fig(p_dist, dist=p_dist(.3, .6, .05, .07), xmin=0., xmax=1., fig_num=2, tit='P and Q. Mu1=.3, Mu2=.6, Sig1=.05, Sig2=.07', tit_fontsz=24)
+    make_fig(q_dist, dist=q_dist(.3, .6, .05, .07), xmin=0., xmax=1., fig_num=2)
+    #show()
     
     print
     print ' > [debug] Making new toyData object...'
