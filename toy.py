@@ -14,7 +14,7 @@ import numpy as np
 from random import *
 from pylab import *
 
-def make_fig(dist_class, dist=None, mu = 0., sig = 1., xmin = -5., xmax = 5., fig_num=0, xlab=None, ylab=None, tit=None, tit_fontsz=30):    
+def make_fig(dist_class, dist=None, mu = 0., sig = 1., xmin = -5., xmax = 5., fig_num=0, xlab=None, ylab=None, tit=None, tit_fontsz=30):
     if not dist: dist = dist_class(mu, sig)
     Xs = np.linspace(xmin, xmax, 100)
     Ys = [dist.eval(X) for X in Xs]
@@ -26,7 +26,7 @@ def make_fig(dist_class, dist=None, mu = 0., sig = 1., xmin = -5., xmax = 5., fi
 
 def rejection_sample(xmin, xmax, pdf, count):
     results = []
-    bns = np.linspace(xmin, xmax, 1000) 
+    bns = np.linspace(xmin, xmax, 1000)
     fn_max = max([pdf(bns[i]) for i in range(len(bns))])
     while (len(results) < count):
         x = uniform(xmin, xmax)
@@ -36,7 +36,7 @@ def rejection_sample(xmin, xmax, pdf, count):
     return results
 
 class norm_pdf_dist:
-    
+
     def __init__(self, mu, sig):
         self.mu = mu
         self.sig = sig
@@ -45,7 +45,7 @@ class norm_pdf_dist:
         return (1./(2*math.pi*self.sig**2)**.5) * math.exp(-(x - self.mu)**2/(2*self.sig**2))
 
 class norm_cdf_dist:
-    
+
     def __init__(self, mu, sig):
         self.mu = mu
         self.sig = sig
@@ -97,26 +97,26 @@ class toyData:
 
         if verbose:
             print '\n >>> [verbose] New toyData object made with M =',str(M) + ',','eta =',eta,'\n'
-        
+
     """
-    Makes M <input, output> distribution pairs. 
+    Makes M <input, output> distribution pairs.
     Each is sampled eta times.
 
     Training instance i uses input values drawn from the pdf p_i
     and output values drawn from the pdf q_i.
 
-    Returns a length-M list of training instances; 
-    each instance is a tuple of the form [in, out]_i,     
+    Returns a length-M list of training instances;
+    each instance is a tuple of the form [in, out]_i,
     where in and out are length-eta lists of scalar values.
     """
     def make_samples(self):
         samples = []
         for i in range(self.M):
-            
+
             # mu_1, mu_2 ~ Unif[0, 1]
             mu_1 = np.random.rand()
             mu_2 = np.random.rand()
-            
+
             # sig_1, sig_2 ~ Unif[0.05, 0.10]
             sig_1 = .05*(np.random.rand() + 1)
             sig_2 = .05*(np.random.rand() + 1)
@@ -156,13 +156,13 @@ if __name__ == '__main__':
 
     print
     print ' > MAKING DISTRIBUTION PLOTS'
-    make_fig(norm_pdf_dist, tit='Normal PDF, CDF. Mu=0, Sig=1')    
-    make_fig(norm_cdf_dist)    
-    make_fig(g_dist, fig_num=1, tit='G Distribution. Mu=0, Sig=1')    
+    make_fig(norm_pdf_dist, tit='Normal PDF, CDF. Mu=0, Sig=1')
+    make_fig(norm_cdf_dist)
+    make_fig(g_dist, fig_num=1, tit='G Distribution. Mu=0, Sig=1')
     make_fig(p_dist, dist=p_dist(.3, .6, .05, .07), xmin=0., xmax=1., fig_num=2, tit='P and Q. Mu1=.3, Mu2=.6, Sig1=.05, Sig2=.07', tit_fontsz=24)
     make_fig(q_dist, dist=q_dist(.3, .6, .05, .07), xmin=0., xmax=1., fig_num=2)
-    #show()
-    
+    show()
+
     print
     print ' > [debug] Making new toyData object...'
     tD = toyData()
