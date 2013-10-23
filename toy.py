@@ -35,6 +35,31 @@ def rejection_sample(xmin, xmax, pdf, count):
             results.append(x)
     return results
 
+# returns indexed function from the cosine basis
+def cosine_basis(index):
+
+    def one(x):
+        return 1
+
+    def phi(x):
+        return (2**.5) * math.cos(math.pi * index * x)
+
+    if (not index): return one
+    else: return phi
+
+def fourier_coeff(index, sample):
+    phi = cosine_basis(index)
+    return sum([phi(s) for s in sample])/(1.*len(sample))
+
+def approx_density(sample, num_terms):
+    coeffs = [fourier_coeff(index, sample) for index in range(num_terms)]
+
+    def f_hat(x):
+        return sum([coeffs[index]*cosine_basis(index)(x) for index in range(num_terms)])
+
+    return f_hat
+
+
 class norm_pdf_dist:
 
     def __init__(self, mu, sig):
@@ -88,7 +113,7 @@ class toyData:
     """
     Makes new toyData object.
     """
-    def __init__(self, M=100, eta=100, verbose=True):
+    def __init__(self, M=1000, eta=1000, verbose=True):
 
         self.M = M
         self.eta = eta
@@ -156,12 +181,29 @@ if __name__ == '__main__':
 
     print
     print ' > MAKING DISTRIBUTION PLOTS'
+    """
     make_fig(norm_pdf_dist, tit='Normal PDF, CDF. Mu=0, Sig=1')
     make_fig(norm_cdf_dist)
     make_fig(g_dist, fig_num=1, tit='G Distribution. Mu=0, Sig=1')
     make_fig(p_dist, dist=p_dist(.3, .6, .05, .07), xmin=0., xmax=1., fig_num=2, tit='P and Q. Mu1=.3, Mu2=.6, Sig1=.05, Sig2=.07', tit_fontsz=24)
     make_fig(q_dist, dist=q_dist(.3, .6, .05, .07), xmin=0., xmax=1., fig_num=2)
     show()
+    """
+
+    print
+    print ' > [debug] testing cosine basis...'
+    phi_0 = cosine_basis(0)
+    phi_1 = cosine_basis(1)
+    phi_2 = cosine_basis(2)
+    phi_3 = cosine_basis(3)
+    xs = np.array(range(100))/100.
+    figure(100)
+    plot(xs, map(phi_0, xs))
+    plot(xs, map(phi_1, xs))
+    plot(xs, map(phi_2, xs))
+    plot(xs, map(phi_3, xs))
+
+    print 'phi_1 of xs:',map(phi_1, xs)
 
     print
     print ' > [debug] Making new toyData object...'
@@ -174,3 +216,18 @@ if __name__ == '__main__':
     print ' > [debug] Length of input, output pairs:', len(data[0])
     print ' > [debug] Number of samples per distribution:', len(data[0][0])
     print
+
+    sample = data[0][0]
+    print
+    print 'first sample:',sample
+    f_hat = approx_density(sample, num_terms=10)
+
+    figure(101)
+    hist(sample)
+    axes = gca()
+    axes.set_xlim(0, 1)
+
+    figure(102)
+    plot(xs, map(f_hat, xs))
+
+    show()
