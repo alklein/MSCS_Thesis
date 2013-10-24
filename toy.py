@@ -9,11 +9,11 @@
 __author__ = "Andrea Klein"
 
 import sys
-# if necessary: specify location of scipy on next line
-sys.path.append('/System/Library/Frameworks/Python.framework/Versions/2.7/Extras/lib/python/py2app/recipes/')
+# if necessary: specify location of scipy on next line, e.g.:
+#sys.path.append('/System/Library/Frameworks/Python.framework/Versions/2.7/Extras/lib/python/py2app/recipes/')
 
 import math
-import scipy
+import scipy.integrate
 import numpy as np
 
 from random import *
@@ -69,7 +69,8 @@ def distance(f1, f2):
     def func(x):
         return abs(f1(x) - f2(x))
 
-    return scipy.integrate.quad(func, 0, 1)
+    y, err = scipy.integrate.quad(func, 0, 1)
+    return y
 
 
 class norm_pdf_dist:
@@ -249,11 +250,11 @@ if __name__ == '__main__':
 
     print
     print ' > [debug] testing distribution distance integral...'
-    print 'distance between dist and itself:', distance(dist, dist)
+    print 'distance between dist and itself:', distance(dist.eval, dist.eval)
     dist2 = p_dist(.25, .6, .05, .07)
-    print 'distance between dist and similar dist:', distance(dist, dist2)
+    print 'distance between dist and similar dist:', distance(dist.eval, dist2.eval)
     dist3 = p_dist(.1, .9, .03, .08)
-    print 'distance between dist and less similar dist:', distance(dist, dist3)
+    print 'distance between dist and less similar dist:', distance(dist.eval, dist3.eval)
 
 
-    show()
+    #show()
