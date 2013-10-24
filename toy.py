@@ -8,7 +8,12 @@
 
 __author__ = "Andrea Klein"
 
+import sys
+# if necessary: specify location of scipy on next line
+sys.path.append('/System/Library/Frameworks/Python.framework/Versions/2.7/Extras/lib/python/py2app/recipes/')
+
 import math
+import scipy
 import numpy as np
 
 from random import *
@@ -58,6 +63,13 @@ def approx_density(sample, num_terms):
         return sum([coeffs[index]*cosine_basis(index)(x) for index in range(num_terms)])
 
     return f_hat
+
+def distance(f1, f2):
+
+    def func(x):
+        return abs(f1(x) - f2(x))
+
+    return scipy.integrate.quad(func, 0, 1)
 
 
 class norm_pdf_dist:
@@ -113,7 +125,7 @@ class toyData:
     """
     Makes new toyData object.
     """
-    def __init__(self, M=1000, eta=1000, verbose=True):
+    def __init__(self, M=100, eta=100, verbose=True):
 
         self.M = M
         self.eta = eta
@@ -181,13 +193,14 @@ if __name__ == '__main__':
 
     print
     print ' > MAKING DISTRIBUTION PLOTS'
+
     """
     make_fig(norm_pdf_dist, tit='Normal PDF, CDF. Mu=0, Sig=1')
     make_fig(norm_cdf_dist)
     make_fig(g_dist, fig_num=1, tit='G Distribution. Mu=0, Sig=1')
-    make_fig(p_dist, dist=p_dist(.3, .6, .05, .07), xmin=0., xmax=1., fig_num=2, tit='P and Q. Mu1=.3, Mu2=.6, Sig1=.05, Sig2=.07', tit_fontsz=24)
+    make_fig(p_dist, dist=p_dist(.3, .6, .05, .07), xmin=0., xmax=1., fig_num=2)
+    #make_fig(p_dist, dist=p_dist(.3, .6, .05, .07), xmin=0., xmax=1., fig_num=2, tit='P and Q. Mu1=.3, Mu2=.6, Sig1=.05, Sig2=.07', tit_fontsz=24)
     make_fig(q_dist, dist=q_dist(.3, .6, .05, .07), xmin=0., xmax=1., fig_num=2)
-    show()
     """
 
     print
@@ -203,8 +216,6 @@ if __name__ == '__main__':
     plot(xs, map(phi_2, xs))
     plot(xs, map(phi_3, xs))
 
-    print 'phi_1 of xs:',map(phi_1, xs)
-
     print
     print ' > [debug] Making new toyData object...'
     tD = toyData()
@@ -217,17 +228,32 @@ if __name__ == '__main__':
     print ' > [debug] Number of samples per distribution:', len(data[0][0])
     print
 
-    sample = data[0][0]
-    print
-    print 'first sample:',sample
-    f_hat = approx_density(sample, num_terms=10)
+
+    dist = p_dist(.3, .6, .05, .07)
+    sample = rejection_sample(0, 1, dist.eval, 5000)
+    f_hat = approx_density(sample, num_terms=25)
 
     figure(101)
-    hist(sample)
+    hist(sample, bins=100, normed=True, color='r')
+    plot(xs, map(dist.eval, xs), linewidth=2, color='b')
     axes = gca()
     axes.set_xlim(0, 1)
+    axes.set_ylim(-1, 5)
 
     figure(102)
-    plot(xs, map(f_hat, xs))
+    hist(sample, bins=100, normed=True, color='r')
+    plot(xs, map(f_hat, xs), linewidth=2, color='k')
+    axes = gca()
+    axes.set_xlim(0, 1)
+    axes.set_ylim(-1, 5)
+
+    print
+    print ' > [debug] testing distribution distance integral...'
+    print 'distance between dist and itself:', distance(dist, dist)
+    dist2 = p_dist(.25, .6, .05, .07)
+    print 'distance between dist and similar dist:', distance(dist, dist2)
+    dist3 = p_dist(.1, .9, .03, .08)
+    print 'distance between dist and less similar dist:', distance(dist, dist3)
+
 
     show()
