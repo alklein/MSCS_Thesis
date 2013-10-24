@@ -72,6 +72,21 @@ def distance(f1, f2):
     y, err = scipy.integrate.quad(func, 0, 1)
     return y
 
+def kernel(x):
+    return 1 - abs(x)
+
+def weight(dist_1, dist_2, bandwidth, k_sum):
+    if k_sum > 0:
+        return kernel(distance(dist_1, dist_2)/(1.*bandwidth))/(1.*k_sum)
+    else:
+        return 0.
+    
+# TODO: convert to list comprehension after checking
+def kernel_sum(dist, all_dists, bandwidth):
+    result = 0.
+    for other_dist in all_dists:
+        result += kernel(distance(dist, other_dist)/(1.*bandwidth))
+    return result
 
 class norm_pdf_dist:
 
