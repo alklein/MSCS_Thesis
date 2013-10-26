@@ -162,7 +162,7 @@ class Estimator:
     training_sample is a length-M list of training instances;
     each instance is a tuple of the form [in, out]_i.
 
-    during initialization, computes:
+    during initialization, automatically computes:
     1. nonparametric approximations
     of the input and output distributions
     2. pairwise distances between the distributions
@@ -174,18 +174,29 @@ class Estimator:
         Ys = training_sample[:,1]
         self.X_hats = [approx_density(sample, num_terms) for sample in Xs]
         self.Y_hats = [approx_density(sample, num_terms) for sample in Ys]
+        print '>>> [debug] number of training instances:',len(self.X_hats)
 
     """
     given a new input sample_0, estimates the expected output distribution
     """
     def regress(self, sample_0):
+        print '>>> [debug] approximating sample density fn for regression'
         f0 = approx_density(sample_0, self.num_terms)
+        print '>>> [debug] computing distance from f0 to each training dist'
         dists = [distance(f0, f) for f in self.X_hats]
         bandwidth = max(dists)
-        k_sum = kernel_sum(f0, self.Xs, bandwidth)
+        print '>>> [debug] computing kernel sum'
+        k_sum = kernel_sum(f0, self.X_hats, bandwidth)
 
-        return sum([self.Y_hats[i] * weight(f_0, self.X_hats[i], bandwidth, k_sum) for i in range(len(self.X_hats))])
-
+        print '>>> [debug] computing weighted sum'
+        def Y0(x):
+            result = 0.
+            for i in range(len(self.X_hats)):
+                result += self.Y_hats[i](x) * weight(f0, self.X_hats[i], bandwidth, k_sum)
+            return result
+            
+        return Y0
+    
 class toyData:
 
     """
@@ -235,10 +246,6 @@ class toyData:
         self.samples = samples
         return samples
 
-    def make_functions(self):
-        # use self.samples
-        print ' >>> TODO: implement make_functions()'
-
     """
     Debugging method.
     """
@@ -276,25 +283,57 @@ if __name__ == '__main__':
     phi_2 = cosine_basis(2)
     phi_3 = cosine_basis(3)
     xs = np.array(range(100))/100.
+
+    """
     figure(100)
     plot(xs, map(phi_0, xs))
     plot(xs, map(phi_1, xs))
     plot(xs, map(phi_2, xs))
     plot(xs, map(phi_3, xs))
+    """
 
     print
     print ' > [debug] Making new toyData object...'
     tD = toyData()
     print ' > [debug] Checking param values...'
     tD.print_params()
-    print ' > [debug] Generating toy data...'
-    data = tD.make_samples()
-    print ' > [debug] Number of toy training instances:', len(data)
-    print ' > [debug] Length of input, output pairs:', len(data[0])
-    print ' > [debug] Number of samples per distribution:', len(data[0][0])
+    print ' > [debug] Generating toy training data...'
+    train_data = tD.make_samples()
+    print ' > [debug] Number of toy training instances:', len(train_data)
+    print ' > [debug] Length of input, output pairs:', len(train_data[0])
+    print ' > [debug] Number of samples per distribution:', len(train_data[0][0])
     print
 
+    print ' > [debug] Making new toyData object...'
+    tD2 = toyData(M = 1)
+    print ' > [debug] Generating toy testing data...'
+    test_data = tD2.make_samples()
+    print ' > [debug] Number of toy testing instances:', len(test_data)
+    print ' > [debug] Length of input, output pairs:', len(test_data[0])
+    print ' > [debug] Number of samples per distribution:', len(test_data[0][0])
 
+    X0_sample, Y0_sample = test_data[0][0], test_data[0][1]
+    E = Estimator(train_data)
+    Y0_hat = E.regress(X0_sample)
+    Y0 = approx_density(Y0_sample, 20)
+
+    figure(1000)
+    hist(X0_sample, bins=100, normed=True, color='r')
+    axes = gca()
+    axes.set_xlim(0, 1)
+    axes.set_ylim(-1, 5)
+
+    figure(1001)
+    hist(Y0_sample, bins=100, normed=True, color='r')
+    plot(xs, map(Y0, xs), linewidth=2, color='b')
+    plot(xs, map(Y0_hat, xs), linewidth=2, color='k')
+    axes = gca()
+    axes.set_xlim(0, 1)
+    axes.set_ylim(-1, 5)
+    
+    show()
+
+    """
     dist = p_dist(.3, .6, .05, .07)
     sample = rejection_sample(0, 1, dist.eval, 5000)
     f_hat = approx_density(sample, num_terms=25)
@@ -321,4 +360,5 @@ if __name__ == '__main__':
     dist3 = p_dist(.1, .9, .03, .08)
     print 'distance between dist and less similar dist:', distance(dist.eval, dist3.eval)
 
-    #show()
+    show()
+    """
