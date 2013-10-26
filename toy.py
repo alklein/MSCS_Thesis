@@ -74,7 +74,7 @@ def distance(f1, f2):
 
 def kernel(x):
     return 1 - abs(x)
-    
+
 # TODO: convert to list comprehension after checking
 def kernel_sum(dist, all_dists, bandwidth):
     result = 0.
@@ -89,6 +89,7 @@ def weight(dist_1, dist_2, bandwidth, k_sum):
         return 0.
 
 # not quite right. should take training data of the form <P_i, Q_i>
+"""
 def estimator(dist_0, all_dists, num_terms):
     bandwidth = max([distance(dist_0, dist) for dist in all_dists])
     k_sum = kernel_sum(dist, all_dists, bandwidth)
@@ -105,7 +106,7 @@ def estimator(dist_0, all_dists, num_terms):
         return result
 
     return q_0
-    
+"""
 
 class norm_pdf_dist:
 
@@ -154,6 +155,36 @@ class q_dist:
 
     def eval(self, x):
         return .5 * (self.g1.eval(x) + self.g2.eval(x))
+
+class Estimator:
+
+    """
+    training_sample is a length-M list of training instances;
+    each instance is a tuple of the form [in, out]_i.
+
+    during initialization, computes:
+    1. nonparametric approximations
+    of the input and output distributions
+    2. pairwise distances between the distributions
+    """
+    def __init__(self, training_sample, num_terms=20):
+
+        self.num_terms = 20
+        Xs = training_sample[:,0]
+        Ys = training_sample[:,1]
+        self.X_hats = [approx_density(sample, num_terms) for sample in Xs]
+        self.Y_hats = [approx_density(sample, num_terms) for sample in Ys]
+
+    """
+    given a new input sample_0, estimates the expected output distribution
+    """
+    def regress(self, sample_0):
+        f0 = approx_density(sample_0, self.num_terms)
+        dists = [distance(f0, f) for f in self.X_hats]
+        bandwidth = max(dists)
+        k_sum = kernel_sum(f0, self.Xs, bandwidth)
+
+        return sum([self.Y_hats[i] * weight(f_0, self.X_hats[i], bandwidth, k_sum) for i in range(len(self.X_hats))])
 
 class toyData:
 
