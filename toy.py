@@ -181,32 +181,25 @@ class Estimator:
     """
     def regress(self, sample_0):
 
-
-        """
-def kernel_sum(dist, all_dists, bandwidth):
-    result = 0.
-    for other_dist in all_dists:
-        result += kernel(distance(dist, other_dist)/(1.*bandwidth))
-    return result
-
-def weight(dist_1, dist_2, bandwidth, k_sum):
-    if k_sum > 0:
-        return kernel(distance(dist_1, dist_2)/(1.*bandwidth))/(1.*k_sum)
-    else:
-        return 0.
-        """
-
         print '>>> [debug] approximating sample density fn for regression'
         f0 = approx_density(sample_0, self.num_terms)
         print '>>> [debug] computing distance from f0 to each training dist'
         distances = [distance(f0, f) for f in self.X_hats]
+        print 'DISTANCES:' # TEMP
+        print distances # TEMP
         bandwidth = 1.*max(distances)
+        print 'bandwidth:',bandwidth
         print '>>> [debug] computing kernel sum'
         k_sum = sum([kernel(d / bandwidth) for d in distances])        
+        print '>>> [debug] kernel sum:',k_sum
 
-        print '>>> [debug] computing weighted sum'
+        print '>>> [debug] computing weights'
+        weights = [kernel((distances[i]/bandwidth)) / k_sum for i in range(len(self.X_hats))] # temp
+        print 'WEIGHTS:' # temp
+        print weights # temp
+
         def Y0(x):
-            return sum([self.Y_hats[i](x) * kernel((distances[i]/bandwidth) / k_sum) for i in range(len(self.X_hats))])
+            return sum([self.Y_hats[i](x) * weights[i] for i in range(len(self.X_hats))])
             
         return Y0
     
@@ -307,7 +300,7 @@ if __name__ == '__main__':
 
     print
     print ' > [debug] Making new toyData object...'
-    tD = toyData()
+    tD = toyData(M = 100, eta = 100)
     print ' > [debug] Checking param values...'
     tD.print_params()
     print ' > [debug] Generating toy training data...'
@@ -330,13 +323,23 @@ if __name__ == '__main__':
     Y0_hat = E.regress(X0_sample)
     Y0 = approx_density(Y0_sample, 20)
 
+    print
+    print map(Y0_hat, xs)
+
     figure(1000)
     hist(Y0_sample, bins=100, normed=True, color='r')
     plot(xs, map(Y0, xs), linewidth=2, color='b')
-    plot(xs, map(Y0_hat, xs), linewidth=2, color='k')
+    #plot(xs, map(Y0_hat, xs), linewidth=2, color='k')
     axes = gca()
     axes.set_xlim(0, 1)
     axes.set_ylim(-1, 5)
+
+    figure(1001)
+    plot(xs, map(Y0_hat, xs), linewidth=2, color='k')
+
+#    axes = gca()
+#    axes.set_xlim(0, 1)
+#    axes.set_ylim(-1, 5)
     
     show()
 
