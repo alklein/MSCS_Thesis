@@ -180,20 +180,33 @@ class Estimator:
     given a new input sample_0, estimates the expected output distribution
     """
     def regress(self, sample_0):
+
+
+        """
+def kernel_sum(dist, all_dists, bandwidth):
+    result = 0.
+    for other_dist in all_dists:
+        result += kernel(distance(dist, other_dist)/(1.*bandwidth))
+    return result
+
+def weight(dist_1, dist_2, bandwidth, k_sum):
+    if k_sum > 0:
+        return kernel(distance(dist_1, dist_2)/(1.*bandwidth))/(1.*k_sum)
+    else:
+        return 0.
+        """
+
         print '>>> [debug] approximating sample density fn for regression'
         f0 = approx_density(sample_0, self.num_terms)
         print '>>> [debug] computing distance from f0 to each training dist'
-        dists = [distance(f0, f) for f in self.X_hats]
-        bandwidth = max(dists)
+        distances = [distance(f0, f) for f in self.X_hats]
+        bandwidth = 1.*max(distances)
         print '>>> [debug] computing kernel sum'
-        k_sum = kernel_sum(f0, self.X_hats, bandwidth)
+        k_sum = sum([kernel(d / bandwidth) for d in distances])        
 
         print '>>> [debug] computing weighted sum'
         def Y0(x):
-            result = 0.
-            for i in range(len(self.X_hats)):
-                result += self.Y_hats[i](x) * weight(f0, self.X_hats[i], bandwidth, k_sum)
-            return result
+            return sum([self.Y_hats[i](x) * kernel((distances[i]/bandwidth) / k_sum) for i in range(len(self.X_hats))])
             
         return Y0
     
@@ -318,12 +331,6 @@ if __name__ == '__main__':
     Y0 = approx_density(Y0_sample, 20)
 
     figure(1000)
-    hist(X0_sample, bins=100, normed=True, color='r')
-    axes = gca()
-    axes.set_xlim(0, 1)
-    axes.set_ylim(-1, 5)
-
-    figure(1001)
     hist(Y0_sample, bins=100, normed=True, color='r')
     plot(xs, map(Y0, xs), linewidth=2, color='b')
     plot(xs, map(Y0_hat, xs), linewidth=2, color='k')
