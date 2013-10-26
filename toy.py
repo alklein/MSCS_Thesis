@@ -187,7 +187,7 @@ class Estimator:
         distances = [distance(f0, f) for f in self.X_hats]
         print 'DISTANCES:' # TEMP
         print distances # TEMP
-        bandwidth = 1.*max(distances)
+        bandwidth = 1.*sum(distances)
         print 'bandwidth:',bandwidth
         print '>>> [debug] computing kernel sum'
         k_sum = sum([kernel(d / bandwidth) for d in distances])        
@@ -197,6 +197,10 @@ class Estimator:
         weights = [kernel((distances[i]/bandwidth)) / k_sum for i in range(len(self.X_hats))] # temp
         print 'WEIGHTS:' # temp
         print weights # temp
+
+        print
+        print 'sum of normalized distances:',sum([d/bandwidth for d in distances]) # TEMP
+        print 'sum of weights:',sum(weights) # TEMP
 
         def Y0(x):
             return sum([self.Y_hats[i](x) * weights[i] for i in range(len(self.X_hats))])
@@ -300,7 +304,7 @@ if __name__ == '__main__':
 
     print
     print ' > [debug] Making new toyData object...'
-    tD = toyData(M = 100, eta = 100)
+    tD = toyData(M = 500, eta = 500)
     print ' > [debug] Checking param values...'
     tD.print_params()
     print ' > [debug] Generating toy training data...'
@@ -329,13 +333,13 @@ if __name__ == '__main__':
     figure(1000)
     hist(Y0_sample, bins=100, normed=True, color='r')
     plot(xs, map(Y0, xs), linewidth=2, color='b')
-    #plot(xs, map(Y0_hat, xs), linewidth=2, color='k')
+    plot(xs, map(Y0_hat, xs), linewidth=2, color='k')
     axes = gca()
     axes.set_xlim(0, 1)
-    axes.set_ylim(-1, 5)
+    axes.set_ylim(-1, 6)
 
-    figure(1001)
-    plot(xs, map(Y0_hat, xs), linewidth=2, color='k')
+    #figure(1001)
+    #plot(xs, map(Y0_hat, xs), linewidth=2, color='k')
 
 #    axes = gca()
 #    axes.set_xlim(0, 1)
