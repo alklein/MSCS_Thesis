@@ -186,27 +186,32 @@ class Estimator:
         Ys = training_sample[:,1]
         self.X_hats = [approx_density(sample, num_terms) for sample in Xs]
         self.Y_hats = [approx_density(sample, num_terms) for sample in Ys]
-        print '>>> [debug] number of training instances:',len(self.X_hats)
+        print
+        print ' >>> [debug] number of training instances:',len(self.X_hats)
 
     """
     given a new input sample_0, estimates the expected output distribution
     """
     def regress(self, sample_0):
 
-        print '>>> [debug] approximating sample density fn for regression'
+        print ' >>> [debug] approximating sample density fn for regression'
         f0 = approx_density(sample_0, self.num_terms)
-        print '>>> [debug] computing distance from f0 to each training dist'
-        distances = [distance(f0, f) for f in self.X_hats]
-        normed_distances = distances / (1.*sum(distances)) # normalize by bandwidth 
-        print '>>> [debug] computing kernel sum'
+        print ' >>> [debug] computing distance from f0 to each training dist'
+        distances = np.array([distance(f0, f) for f in self.X_hats])
+        #normed_distances = distances / (1.*sum(distances)) # normalize by bandwidth 
+        # TEMP
+        normed_distances = distances / (1. * max(distances)) # normalize by bandwidth 
+        print ' >>> [debug] computing kernel sum'
         k_sum = sum([kernel(d) for d in normed_distances])        
-        print '>>> [debug] kernel sum:',k_sum
+        print ' >>> [debug] kernel sum:',k_sum
 
-        print '>>> [debug] computing weights'
+        print ' >>> [debug] computing weights'
         weights = [kernel(normed_distances[i]) / k_sum for i in range(len(self.X_hats))] # temp
 
         self.similar_output = self.Y_hats[np.argmin(normed_distances)] # temp
         self.max_weighted_output = self.Y_hats[np.argmax(weights)] # temp
+        print ' >>> [debug] min-distance dist:', self.similar_output
+        print ' >>> [debug] max-weight dist:', self.max_weighted_output
 
         """
         figure(0)
@@ -214,12 +219,12 @@ class Estimator:
         title('distances')
 
         figure(1)
-        hist(weights)
+        hist(weights, bins=100)
         title('weights')
         """
 
         def Y0(x):
-            return sum([self.Y_hats[i](x) * weights[i] for i in range(len(self.X_hats))])
+            return sum([self.Y_hats[i](x) * weights[i] for i in range(len(self.Y_hats))])
             
         return Y0
     
@@ -287,6 +292,11 @@ Demos code and runs built-in tests.
 """
 if __name__ == '__main__':
 
+    num_training_pairs = 2000
+    num_testing_pairs = 1
+    samples_per_dist = 2000
+
+
     print
     print ' > RUNNING BUILT-IN TESTS'
 
@@ -320,7 +330,7 @@ if __name__ == '__main__':
 
     print
     print ' > [debug] Making new toyData object...'
-    tD = toyData(M = 50, eta = 50)
+    tD = toyData(M = num_training_pairs, eta = samples_per_dist)
     print ' > [debug] Checking param values...'
     tD.print_params()
     print ' > [debug] Generating toy training data...'
@@ -331,7 +341,7 @@ if __name__ == '__main__':
     print
 
     print ' > [debug] Making new toyData object...'
-    tD2 = toyData(M = 1)
+    tD2 = toyData(M = num_testing_pairs, eta = samples_per_dist)
     print ' > [debug] Generating toy testing data...'
     test_data = tD2.make_samples()
     print ' > [debug] Number of toy testing instances:', len(test_data)
@@ -342,9 +352,6 @@ if __name__ == '__main__':
     E = Estimator(train_data)
     Y0_hat = E.regress(X0_sample)
     Y0 = approx_density(Y0_sample, 20)
-
-    print
-    print map(Y0_hat, xs)
 
     figure(1000)
     hist(Y0_sample, bins=100, normed=True, color='r')
