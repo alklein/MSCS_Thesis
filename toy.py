@@ -69,7 +69,17 @@ def distance(f1, f2):
     def func(x):
         return abs(f1(x) - f2(x))
 
-    y, err = scipy.integrate.quad(func, 0, 1)
+    ### TEMP
+    """
+    figure(10)
+    xs = np.array(range(100))/100.
+    plot(xs, map(func, xs))
+    title('function we are integrating')
+    show()
+    """
+    ###
+    y, err = scipy.integrate.quad(func, 0., 1., limit=200) # TEMP
+    #print ' >>> [debug] ERROR upon integration:',err
     return y
 
 def kernel(x):
@@ -169,6 +179,8 @@ class Estimator:
     """
     def __init__(self, training_sample, num_terms=20):
 
+        self.similar_output = None # temp
+        self.max_weighted_output = None # temp
         self.num_terms = 20
         Xs = training_sample[:,0]
         Ys = training_sample[:,1]
@@ -185,22 +197,26 @@ class Estimator:
         f0 = approx_density(sample_0, self.num_terms)
         print '>>> [debug] computing distance from f0 to each training dist'
         distances = [distance(f0, f) for f in self.X_hats]
-        print 'DISTANCES:' # TEMP
-        print distances # TEMP
-        bandwidth = 1.*sum(distances)
-        print 'bandwidth:',bandwidth
+        normed_distances = distances / (1.*sum(distances)) # normalize by bandwidth 
         print '>>> [debug] computing kernel sum'
-        k_sum = sum([kernel(d / bandwidth) for d in distances])        
+        k_sum = sum([kernel(d) for d in normed_distances])        
         print '>>> [debug] kernel sum:',k_sum
 
         print '>>> [debug] computing weights'
-        weights = [kernel((distances[i]/bandwidth)) / k_sum for i in range(len(self.X_hats))] # temp
-        print 'WEIGHTS:' # temp
-        print weights # temp
+        weights = [kernel(normed_distances[i]) / k_sum for i in range(len(self.X_hats))] # temp
 
-        print
-        print 'sum of normalized distances:',sum([d/bandwidth for d in distances]) # TEMP
-        print 'sum of weights:',sum(weights) # TEMP
+        self.similar_output = self.Y_hats[np.argmin(normed_distances)] # temp
+        self.max_weighted_output = self.Y_hats[np.argmax(weights)] # temp
+
+        """
+        figure(0)
+        hist(distances)
+        title('distances')
+
+        figure(1)
+        hist(weights)
+        title('weights')
+        """
 
         def Y0(x):
             return sum([self.Y_hats[i](x) * weights[i] for i in range(len(self.X_hats))])
@@ -304,7 +320,7 @@ if __name__ == '__main__':
 
     print
     print ' > [debug] Making new toyData object...'
-    tD = toyData(M = 500, eta = 500)
+    tD = toyData(M = 50, eta = 50)
     print ' > [debug] Checking param values...'
     tD.print_params()
     print ' > [debug] Generating toy training data...'
@@ -333,7 +349,15 @@ if __name__ == '__main__':
     figure(1000)
     hist(Y0_sample, bins=100, normed=True, color='r')
     plot(xs, map(Y0, xs), linewidth=2, color='b')
-    plot(xs, map(Y0_hat, xs), linewidth=2, color='k')
+    plot(xs, map(Y0_hat, xs), 'x', linewidth=2)
+    axes = gca()
+    axes.set_xlim(0, 1)
+    axes.set_ylim(-1, 6)
+
+    figure(1001)
+    plot(xs, map(Y0, xs), linewidth=2, color='b')
+    plot(xs, map(E.similar_output, xs), linewidth=2, color='r')
+    plot(xs, map(E.max_weighted_output, xs), linewidth=1, color='g')
     axes = gca()
     axes.set_xlim(0, 1)
     axes.set_ylim(-1, 6)
