@@ -258,9 +258,9 @@ Demos code and runs built-in tests.
 """
 if __name__ == '__main__':
 
-    num_training_pairs = 100
+    num_training_pairs = 500
     num_testing_pairs = 1
-    samples_per_dist = 100
+    samples_per_dist = 10000
 
 
     print
@@ -315,9 +315,13 @@ if __name__ == '__main__':
     print ' > [debug] Number of samples per distribution:', len(test_data[0][0])
 
     X0_sample, Y0_sample = test_data[0][0], test_data[0][1]
+    print ' > [debug] Training estimator (approximating training samples)... '
     E = Estimator(train_data)
+    print ' > [debug] Regressing on new sample... '
     Y0_hat = E.regress(X0_sample)
+
     Y0 = approx_density(Y0_sample, 20)
+    print ' > [debug] Making plots... '
 
     figure(1000)
     hist(Y0_sample, bins=100, normed=True, color='r')
