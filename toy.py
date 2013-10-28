@@ -176,8 +176,6 @@ class Estimator:
 
         self.similar_output = self.Y_hats[np.argmin(normed_distances)] # temp
         self.max_weighted_output = self.Y_hats[np.argmax(weights)] # temp
-        print ' >>> [debug] min-distance dist:', self.similar_output
-        print ' >>> [debug] max-weight dist:', self.max_weighted_output
 
         """
         figure(0)
@@ -258,9 +256,9 @@ Demos code and runs built-in tests.
 """
 if __name__ == '__main__':
 
-    num_training_pairs = 500
+    num_training_pairs = 10
     num_testing_pairs = 1
-    samples_per_dist = 10000
+    samples_per_dist = 10
 
 
     print
@@ -285,6 +283,7 @@ if __name__ == '__main__':
     phi_2 = cosine_basis(2)
     phi_3 = cosine_basis(3)
     xs = np.array(range(100))/100.
+
 
     """
     figure(100)
@@ -315,13 +314,18 @@ if __name__ == '__main__':
     print ' > [debug] Number of samples per distribution:', len(test_data[0][0])
 
     X0_sample, Y0_sample = test_data[0][0], test_data[0][1]
+    print
     print ' > [debug] Training estimator (approximating training samples)... '
     E = Estimator(train_data)
+    print
     print ' > [debug] Regressing on new sample... '
+    print
     Y0_hat = E.regress(X0_sample)
 
     Y0 = approx_density(Y0_sample, 20)
+    print
     print ' > [debug] Making plots... '
+    print
 
     figure(1000)
     hist(Y0_sample, bins=100, normed=True, color='r')
@@ -338,13 +342,6 @@ if __name__ == '__main__':
     axes = gca()
     axes.set_xlim(0, 1)
     axes.set_ylim(-1, 6)
-
-    #figure(1001)
-    #plot(xs, map(Y0_hat, xs), linewidth=2, color='k')
-
-#    axes = gca()
-#    axes.set_xlim(0, 1)
-#    axes.set_ylim(-1, 5)
     
     show()
 
