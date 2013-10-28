@@ -78,45 +78,11 @@ def distance(f1, f2):
     show()
     """
     ###
-    y, err = scipy.integrate.quad(func, 0., 1., limit=200) # TEMP
-    #print ' >>> [debug] ERROR upon integration:',err
+    y, err = scipy.integrate.quad(func, 0., 1., limit=200) 
     return y
 
 def kernel(x):
     return 1 - abs(x)
-
-# TODO: convert to list comprehension after checking
-def kernel_sum(dist, all_dists, bandwidth):
-    result = 0.
-    for other_dist in all_dists:
-        result += kernel(distance(dist, other_dist)/(1.*bandwidth))
-    return result
-
-def weight(dist_1, dist_2, bandwidth, k_sum):
-    if k_sum > 0:
-        return kernel(distance(dist_1, dist_2)/(1.*bandwidth))/(1.*k_sum)
-    else:
-        return 0.
-
-# not quite right. should take training data of the form <P_i, Q_i>
-"""
-def estimator(dist_0, all_dists, num_terms):
-    bandwidth = max([distance(dist_0, dist) for dist in all_dists])
-    k_sum = kernel_sum(dist, all_dists, bandwidth)
-
-    def q_0(x):
-        result = 0.
-        for i in range(num_terms):
-            phi = cosine_basis(i)
-            term = 0.
-            for dist in all_dists:
-                W = weight(dist_0, dist, bandwidth, k_sum)
-                term += W * dist
-            result += term * phi
-        return result
-
-    return q_0
-"""
 
 class norm_pdf_dist:
 
@@ -292,9 +258,9 @@ Demos code and runs built-in tests.
 """
 if __name__ == '__main__':
 
-    num_training_pairs = 2000
+    num_training_pairs = 100
     num_testing_pairs = 1
-    samples_per_dist = 2000
+    samples_per_dist = 100
 
 
     print
