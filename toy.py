@@ -78,7 +78,7 @@ def distance(f1, f2):
     show()
     """
     ###
-    y, err = scipy.integrate.quad(func, 0., 1., limit=200) 
+    y, err = scipy.integrate.quad(func, 0., 1., limit=100) # TEMP: decreased limit
     return y
 
 def kernel(x):
@@ -256,9 +256,9 @@ Demos code and runs built-in tests.
 """
 if __name__ == '__main__':
 
-    num_training_pairs = 10
+    num_training_pairs = 5000
     num_testing_pairs = 1
-    samples_per_dist = 10
+    samples_per_dist = 2000
 
 
     print
@@ -267,14 +267,17 @@ if __name__ == '__main__':
     print
     print ' > MAKING DISTRIBUTION PLOTS'
 
-    """
-    make_fig(norm_pdf_dist, tit='Normal PDF, CDF. Mu=0, Sig=1')
-    make_fig(norm_cdf_dist)
-    make_fig(g_dist, fig_num=1, tit='G Distribution. Mu=0, Sig=1')
+
+    #make_fig(norm_pdf_dist, tit='Normal PDF, CDF. Mu=0, Sig=1')
+    #make_fig(norm_cdf_dist)
+    #make_fig(g_dist, fig_num=1, tit='G Distribution. Mu=0, Sig=1')
     make_fig(p_dist, dist=p_dist(.3, .6, .05, .07), xmin=0., xmax=1., fig_num=2)
     #make_fig(p_dist, dist=p_dist(.3, .6, .05, .07), xmin=0., xmax=1., fig_num=2, tit='P and Q. Mu1=.3, Mu2=.6, Sig1=.05, Sig2=.07', tit_fontsz=24)
     make_fig(q_dist, dist=q_dist(.3, .6, .05, .07), xmin=0., xmax=1., fig_num=2)
-    """
+
+    show()
+
+    exit(0) # TEMP
 
     print
     print ' > [debug] testing cosine basis...'
@@ -331,6 +334,7 @@ if __name__ == '__main__':
     hist(Y0_sample, bins=100, normed=True, color='r')
     plot(xs, map(Y0, xs), linewidth=2, color='b')
     plot(xs, map(Y0_hat, xs), 'x', linewidth=2)
+    title('M: ' + str(num_training_pairs) + ' eta: ' + str(samples_per_dist))
     axes = gca()
     axes.set_xlim(0, 1)
     axes.set_ylim(-1, 6)
