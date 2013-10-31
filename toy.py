@@ -182,15 +182,11 @@ class q_dist:
 class Estimator:
 
     """
-    training_sample is a length-M list of training instances;
+    training_sample is a list of training instances;
+    cv_sample is a list of "holdout" instances for cross-validation;
     each instance is a tuple of the form [in, out]_i.
-
-    during initialization, automatically computes:
-    1. nonparametric approximations
-    of the input and output distributions
-    2. pairwise distances between the distributions
     """
-    def __init__(self, training_sample, cv_sample, num_terms = 20, dist_fn = L1_distance, kernel = triangle_kernel, bandwidths = [.5, .75, 1., 1.25, 1.5]):
+    def __init__(self, training_sample, cv_sample, num_terms = 20, dist_fn = L1_distance, kernel = triangle_kernel, bandwidths = [.25, .5, .75, 1., 1.25, 1.5, 1.75, 2.]):
 
         self.max_weighted_output = None 
         self.num_terms = num_terms
@@ -208,31 +204,51 @@ class Estimator:
             self.nonparametric_estimation = fourier_coeffs
             self.L2_mode = True
 
-        Xs = training_sample[:,0]
-        Ys = training_sample[:,1]
-        cv_Xs = cv_sample[:,0]
-        cv_Ys = cv_sample[:,1]
-        self.X_hats = [self.nonparametric_estimation(sample, num_terms) for sample in Xs]
-        self.Y_hats = [self.nonparametric_estimation(sample, num_terms) for sample in Ys]
-        self.cv_Xs = cv_Xs
-        self.cv_Y_hats = [self.nonparametric_estimation(sample, num_terms) for sample in cv_Ys]
-        print
-        print ' >>> [debug] total number of toy data instances:',len(self.X_hats)
+        self.Xs = training_sample[:,0]
+        self.Ys = training_sample[:,1]
+        self.cv_Xs = cv_sample[:,0]
+        self.cv_Ys = cv_sample[:,1]
+
+    def train(self):
+
+        # fit training and cv data via nonparametric density estimation
+        print ' >>> [debug] fitting training data... '
+        self.X_hats = [self.nonparametric_estimation(sample, self.num_terms) for sample in self.Xs]
+        self.Y_hats = [self.nonparametric_estimation(sample, self.num_terms) for sample in self.Ys]
+        print ' >>> [debug] fitting cv data... '
+        self.cv_X_hats = [self.nonparametric_estimation(sample, self.num_terms) for sample in self.cv_Xs]
+        self.cv_Y_hats = [self.nonparametric_estimation(sample, self.num_terms) for sample in self.cv_Ys]
+
+        # cross-validate bandwidths
+        print ' >>> [debug] cross-validating bandwidths...'
+        b_errs = []
+        for b in self.bandwidths:
+            net_err = 0.
+            for i in range(len(self.cv_Xs)):
+                input_coeffs = self.cv_X_hats[i]
+                target_coeffs = self.cv_Y_hats[i]
+                (Y0_fn, Y0_coeffs) = self.regress(input_coeffs, b=b)
+                net_err += L2_distance(target_coeffs, Y0_coeffs)
+
+            avg_err = net_err / (1.*len(self.cv_Xs))
+            print ' >>> >>> [debug] average L2 error for bandwidth',b,'-',avg_err 
+            b_errs.append(avg_err)
+        print 'best b:', self.bandwidths[np.argmin(b_errs)]
+        self.best_b = self.bandwidths[np.argmin(b_errs)]
 
     """
-    given a new input sample_0, estimates the expected output distribution.
+    given coeffs fit to some input sample_0, estimates the expected output distribution.
     returns estimator in function form and, if in L2 mode, coefficient form as well.
     (in L1 mode, the coefficient form is None.)
     """
-    def regress(self, sample_0, b = None):
+    def regress(self, f0, b = None):
 
         if (not b): b = self.best_b # possibly still None
 
-        f0 = self.nonparametric_estimation(sample_0, self.num_terms)
-        
-        print ' >>> [debug] computing distance from f0 to each training dist'
-        #distances = np.array([self.dist_fn(f0, f) for f in self.X_hats])
-        #TEMP
+        distances = np.array([self.dist_fn(f0, f) for f in self.X_hats])
+        normed_distances = distances / b
+
+        """
         start = time.clock()
         distances = []
         for f in self.X_hats:
@@ -242,15 +258,13 @@ class Estimator:
         print ' >>> [timer] TOTAL TIME TO COMPUTE PAIRWISE DISTANCES:',elapsed
         print ' >>> [timer] AVG TIME PER PAIR:',elapsed/len(self.X_hats)
         distances = np.array(distances)
+        """
 
-        bandwidth = self.bandwidths[-1] # temp
-        normed_distances = distances / bandwidth        
-
-        print ' >>> [debug] computing weights'
+        #print ' >>> [debug] computing weights'
         k_sum = sum([self.kernel(d) for d in normed_distances])        
-        print ' >>> [debug] kernel sum:',k_sum
+        #print ' >>> [debug] kernel sum:',k_sum
         weights = [self.kernel(normed_distances[i]) / k_sum for i in range(len(self.X_hats))]
-        print ' >>> [debug] sum of weights:',sum(weights)
+        #print ' >>> [debug] sum of weights:',sum(weights)
 
         def Y0_fn(x):
             return sum([self.Y_hats[i](x) * weights[i] for i in range(len(self.Y_hats))])
@@ -266,30 +280,8 @@ class Estimator:
         else:
             self.max_weighted_output = self.Y_hats[np.argmax(weights)] # temp
 
-        print ' >>> [debug] coeffs of first training Y:',self.Y_hats[0]
-        print ' >>> [debug] sum of those coeffs:',sum(self.Y_hats[0])
-    
-            
-        print ' >>> [debug] Y0 coeffs:',Y0_coeffs # TEMP
-        print ' >>> [debug] sum of Y0 coeffs:',sum(Y0_coeffs) # TEMP
         return (Y0_fn, Y0_coeffs)
 
-
-    def train(self):
-        # TODO: fit training data here
-
-        # cross-validate bandwidths
-        b_errs = []
-        for b in bandwidths:
-            net_err = 0.
-            for i in range(len(self.cv_Xs)):
-                sample = self.cv_Xs[i]
-                target_coeffs = self.cv_Y_hats[i]
-                (Y0_fn, Y0_coeffs) = self.regress(sample, b=b)
-                net_err += L2_distance(target_coeffs, Y0_coeffs)
-            avg_err = net_err / (1.*len(self.cv_Xs))
-            b_errs.append(avg_err)
-        self.best_b = bandwidths[np.argmin(b_errs)]
     
 class toyData:
 
@@ -379,18 +371,16 @@ if __name__ == '__main__':
     print
     print ' > RUNNING BUILT-IN TESTS'
 
+    """
     print
     print ' > MAKING DISTRIBUTION PLOTS'
 
-
-    """
     #make_fig(norm_pdf_dist, tit='Normal PDF, CDF. Mu=0, Sig=1')
     #make_fig(norm_cdf_dist)
     #make_fig(g_dist, fig_num=1, tit='G Distribution. Mu=0, Sig=1')
     make_fig(p_dist, dist=p_dist(.3, .6, .05, .07), xmin=0., xmax=1., fig_num=2)
     #make_fig(p_dist, dist=p_dist(.3, .6, .05, .07), xmin=0., xmax=1., fig_num=2, tit='P and Q. Mu1=.3, Mu2=.6, Sig1=.05, Sig2=.07', tit_fontsz=24)
     make_fig(q_dist, dist=q_dist(.3, .6, .05, .07), xmin=0., xmax=1., fig_num=2)
-    """
 
     print
     print ' > [debug] testing cosine basis...'
@@ -398,9 +388,9 @@ if __name__ == '__main__':
     phi_1 = cosine_basis(1)
     phi_2 = cosine_basis(2)
     phi_3 = cosine_basis(3)
+
     xs = np.array(range(100))/100.
 
-    """
     figure(100)
     plot(xs, map(phi_0, xs))
     plot(xs, map(phi_1, xs))
@@ -414,11 +404,13 @@ if __name__ == '__main__':
     print ' > [debug] Checking param values...'
     tD.print_params()
     print ' > [debug] Generating toy training data...'
+
     tD.make_samples()
     all_data = tD.all_samples
     train_data = tD.train_samples
     cv_data = tD.cv_samples
     test_data = tD.test_samples
+
     print ' > [debug] Total number of toy data instances:', len(all_data)
     print ' > [debug] Number of training instances:', len(train_data)
     print ' > [debug] Number of cv instances:', len(cv_data)
@@ -426,23 +418,26 @@ if __name__ == '__main__':
     print 
     print ' > [debug] Length of input, output pairs:', len(train_data[0])
     print ' > [debug] Number of samples per distribution:', len(train_data[0][0])
-    print
 
     X0_sample, Y0_sample = test_data[0][0], test_data[0][1]
     print
-    print ' > [debug] Training estimator (approximating training samples)... '
-    E = Estimator(train_data, cv_data, dist_fn = L2_distance) #, kernel = RBF_kernel)
+    print ' > [debug] Creating estimator... '
+    E = Estimator(train_data, cv_data, dist_fn = L2_distance, kernel = RBF_kernel)
+    print ' > [debug] Training estimator... '
+    E.train()
     print
     print ' > [debug] Regressing on new sample... '
     print
-    (Y0_fn, Y0_coeffs) = E.regress(X0_sample)
+    X0_coeffs = fourier_coeffs(X0_sample, 20)
+    (Y0_fn, Y0_coeffs) = E.regress(X0_coeffs)
     Y0_hat = coeffs_to_approx_density(Y0_coeffs)
 
-#    Y0 = approx_density(Y0_sample, 20)
     Y0 = coeffs_to_approx_density(fourier_coeffs(Y0_sample, 20))
     print
     print ' > [debug] Making plots... '
     print
+
+    xs = np.array(range(100))/100.
 
     figure(1000)
     hist(Y0_sample, bins=100, normed=True, color='r')
