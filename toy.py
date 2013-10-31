@@ -12,6 +12,7 @@ import sys
 # if necessary: specify location of scipy on next line, e.g.:
 #sys.path.append('/System/Library/Frameworks/Python.framework/Versions/2.7/Extras/lib/python/py2app/recipes/')
 
+import time
 import math
 import numpy as np
 import scipy.integrate
@@ -122,7 +123,13 @@ def L2_distance(c1, c2):
     return sum([(c1[i] - c2[i])**2 for i in range(len(c1))])
 
 def triangle_kernel(x):
-    return 1 - abs(x)
+    if (0 <= x <= 1):
+        return 1. - abs(x)
+    else:
+        return 0.
+
+def RBF_kernel(x):
+    return math.exp(-(x**2)/2.)
 
 class norm_pdf_dist:
 
@@ -183,14 +190,14 @@ class Estimator:
     of the input and output distributions
     2. pairwise distances between the distributions
     """
-    def __init__(self, training_sample, num_terms = 20, dist_fn = L1_distance, kernel = triangle_kernel):
+    def __init__(self, training_sample, cv_sample, num_terms = 20, dist_fn = L1_distance, kernel = triangle_kernel, bandwidths = [.5, .75, 1., 1.25, 1.5]):
 
-        self.similar_output = None # temp
-        self.max_weighted_output = None # temp
+        self.max_weighted_output = None 
         self.num_terms = num_terms
         self.dist_fn = dist_fn
-        self.kernel = kernel
-        
+        self.kernel = kernel        
+        self.bandwidths = bandwidths
+        self.best_b = None
 
         # L1 norm -> function representation of nonparametric estimators
         if (dist_fn == L1_distance):
@@ -203,8 +210,12 @@ class Estimator:
 
         Xs = training_sample[:,0]
         Ys = training_sample[:,1]
+        cv_Xs = cv_sample[:,0]
+        cv_Ys = cv_sample[:,1]
         self.X_hats = [self.nonparametric_estimation(sample, num_terms) for sample in Xs]
         self.Y_hats = [self.nonparametric_estimation(sample, num_terms) for sample in Ys]
+        self.cv_Xs = cv_Xs
+        self.cv_Y_hats = [self.nonparametric_estimation(sample, num_terms) for sample in cv_Ys]
         print
         print ' >>> [debug] total number of toy data instances:',len(self.X_hats)
 
@@ -213,34 +224,72 @@ class Estimator:
     returns estimator in function form and, if in L2 mode, coefficient form as well.
     (in L1 mode, the coefficient form is None.)
     """
-    def regress(self, sample_0):
+    def regress(self, sample_0, b = None):
+
+        if (not b): b = self.best_b # possibly still None
 
         f0 = self.nonparametric_estimation(sample_0, self.num_terms)
         
         print ' >>> [debug] computing distance from f0 to each training dist'
-        distances = np.array([self.dist_fn(f0, f) for f in self.X_hats])
-        bandwidth = 1.*max(distances) # temp
+        #distances = np.array([self.dist_fn(f0, f) for f in self.X_hats])
+        #TEMP
+        start = time.clock()
+        distances = []
+        for f in self.X_hats:
+            d = self.dist_fn(f0, f)
+            distances.append(d)
+        elapsed = time.clock() - start
+        print ' >>> [timer] TOTAL TIME TO COMPUTE PAIRWISE DISTANCES:',elapsed
+        print ' >>> [timer] AVG TIME PER PAIR:',elapsed/len(self.X_hats)
+        distances = np.array(distances)
+
+        bandwidth = self.bandwidths[-1] # temp
         normed_distances = distances / bandwidth        
 
         print ' >>> [debug] computing weights'
         k_sum = sum([self.kernel(d) for d in normed_distances])        
+        print ' >>> [debug] kernel sum:',k_sum
         weights = [self.kernel(normed_distances[i]) / k_sum for i in range(len(self.X_hats))]
-
-        #self.similar_output = self.Y_hats[np.argmin(normed_distances)] # temp
-        #self.max_weighted_output = self.Y_hats[np.argmax(weights)] # temp
+        print ' >>> [debug] sum of weights:',sum(weights)
 
         def Y0_fn(x):
             return sum([self.Y_hats[i](x) * weights[i] for i in range(len(self.Y_hats))])
 
         Y0_coeffs = None
         if (self.L2_mode):
-            Y0_coeffs = []
-            for i in range(self.num_terms):
-                coeff = sum([self.Y_hats[j][i] * weights[i] for j in range(len(self.Y_hats))])
-                Y0_coeffs.append(coeff)
+            Y0_coeffs = np.zeros(self.num_terms)
+            for i in range(len(self.Y_hats)):
+                row = self.Y_hats[i]
+                weight = weights[i]
+                weighted_row = np.array([weight*val for val in row])
+                Y0_coeffs += weighted_row
+        else:
+            self.max_weighted_output = self.Y_hats[np.argmax(weights)] # temp
+
+        print ' >>> [debug] coeffs of first training Y:',self.Y_hats[0]
+        print ' >>> [debug] sum of those coeffs:',sum(self.Y_hats[0])
+    
             
         print ' >>> [debug] Y0 coeffs:',Y0_coeffs # TEMP
+        print ' >>> [debug] sum of Y0 coeffs:',sum(Y0_coeffs) # TEMP
         return (Y0_fn, Y0_coeffs)
+
+
+    def train(self):
+        # TODO: fit training data here
+
+        # cross-validate bandwidths
+        b_errs = []
+        for b in bandwidths:
+            net_err = 0.
+            for i in range(len(self.cv_Xs)):
+                sample = self.cv_Xs[i]
+                target_coeffs = self.cv_Y_hats[i]
+                (Y0_fn, Y0_coeffs) = self.regress(sample, b=b)
+                net_err += L2_distance(target_coeffs, Y0_coeffs)
+            avg_err = net_err / (1.*len(self.cv_Xs))
+            b_errs.append(avg_err)
+        self.best_b = bandwidths[np.argmin(b_errs)]
     
 class toyData:
 
@@ -382,14 +431,15 @@ if __name__ == '__main__':
     X0_sample, Y0_sample = test_data[0][0], test_data[0][1]
     print
     print ' > [debug] Training estimator (approximating training samples)... '
-    E = Estimator(train_data, dist_fn = L2_distance)
+    E = Estimator(train_data, cv_data, dist_fn = L2_distance) #, kernel = RBF_kernel)
     print
     print ' > [debug] Regressing on new sample... '
     print
     (Y0_fn, Y0_coeffs) = E.regress(X0_sample)
     Y0_hat = coeffs_to_approx_density(Y0_coeffs)
 
-    Y0 = approx_density(Y0_sample, 20)
+#    Y0 = approx_density(Y0_sample, 20)
+    Y0 = coeffs_to_approx_density(fourier_coeffs(Y0_sample, 20))
     print
     print ' > [debug] Making plots... '
     print
@@ -397,7 +447,7 @@ if __name__ == '__main__':
     figure(1000)
     hist(Y0_sample, bins=100, normed=True, color='r')
     plot(xs, map(Y0, xs), linewidth=2, color='b')
-    plot(xs, map(Y0_hat, xs), 'x', linewidth=2)
+    plot(xs, map(Y0_hat, xs), linewidth=2, color='k')
     title('M: ' + str(M) + ' eta: ' + str(eta))
     axes = gca()
     axes.set_xlim(0, 1)
