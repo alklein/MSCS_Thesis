@@ -78,7 +78,7 @@ def distance(f1, f2):
     show()
     """
     ###
-    y, err = scipy.integrate.quad(func, 0., 1., limit=100) # TEMP: decreased limit
+    y, err = scipy.integrate.quad(func, 0., 1., limit=200)
     return y
 
 def kernel(x):
@@ -197,12 +197,19 @@ class toyData:
     """
     Makes new toyData object.
     """
-    def __init__(self, M=100, eta=100, verbose=True):
+    def __init__(self, M=100, eta=100, holdout_frac = .1, verbose=True):
+
+        # if we're calling M the number of training + cv instances:
+        self.num_toy_instances = int(1.1 * M) 
 
         self.M = M
         self.eta = eta
-        self.samples = None
-        self.functions = None
+        self.holdout_frac = holdout_frac
+
+        self.all_samples = None
+        self.train_samples = None
+        self.cv_samples = None
+        self.test_samples = None
 
         if verbose:
             print '\n >>> [verbose] New toyData object made with M =',str(M) + ',','eta =',eta,'\n'
@@ -217,10 +224,17 @@ class toyData:
     Returns a length-M list of training instances;
     each instance is a tuple of the form [in, out]_i,
     where in and out are length-eta lists of scalar values.
+
+    Two "holdout" pairs of size holdout_frac * M are set aside.
+
+    all_samples: complete toy data
+    train_samples: used to "train" regressor
+    cv_samples (holdout 1): used to cross-validate bandwidth
+    test_samples (holdout 2): used to test cross-validated regressor
     """
     def make_samples(self):
         samples = []
-        for i in range(self.M):
+        for i in range(self.num_toy_instances):
 
             # mu_1, mu_2 ~ Unif[0, 1]
             mu_1 = np.random.rand()
@@ -237,9 +251,13 @@ class toyData:
             output_samples = rejection_sample(0., 1., q.eval, self.eta)
             samples.append([input_samples, output_samples])
 
-        samples = np.array(samples)
-        self.samples = samples
-        return samples
+        self.all_samples = np.array(samples)
+
+        holdout_sz = int(self.holdout_frac * self.M)
+        self.cv_samples = self.all_samples[:holdout_sz]
+        self.test_samples = self.all_samples[holdout_sz:2*holdout_sz]
+        self.train_samples = self.all_samples[2*holdout_sz:]
+
 
     """
     Debugging method.
@@ -256,10 +274,8 @@ Demos code and runs built-in tests.
 """
 if __name__ == '__main__':
 
-    num_training_pairs = 5000
-    num_testing_pairs = 1
-    samples_per_dist = 2000
 
+    M, eta = 100, 100
 
     print
     print ' > RUNNING BUILT-IN TESTS'
@@ -268,16 +284,14 @@ if __name__ == '__main__':
     print ' > MAKING DISTRIBUTION PLOTS'
 
 
+    """
     #make_fig(norm_pdf_dist, tit='Normal PDF, CDF. Mu=0, Sig=1')
     #make_fig(norm_cdf_dist)
     #make_fig(g_dist, fig_num=1, tit='G Distribution. Mu=0, Sig=1')
     make_fig(p_dist, dist=p_dist(.3, .6, .05, .07), xmin=0., xmax=1., fig_num=2)
     #make_fig(p_dist, dist=p_dist(.3, .6, .05, .07), xmin=0., xmax=1., fig_num=2, tit='P and Q. Mu1=.3, Mu2=.6, Sig1=.05, Sig2=.07', tit_fontsz=24)
     make_fig(q_dist, dist=q_dist(.3, .6, .05, .07), xmin=0., xmax=1., fig_num=2)
-
-    show()
-
-    exit(0) # TEMP
+    """
 
     print
     print ' > [debug] testing cosine basis...'
@@ -286,7 +300,6 @@ if __name__ == '__main__':
     phi_2 = cosine_basis(2)
     phi_3 = cosine_basis(3)
     xs = np.array(range(100))/100.
-
 
     """
     figure(100)
@@ -298,23 +311,23 @@ if __name__ == '__main__':
 
     print
     print ' > [debug] Making new toyData object...'
-    tD = toyData(M = num_training_pairs, eta = samples_per_dist)
+    tD = toyData(M = M, eta = eta)
     print ' > [debug] Checking param values...'
     tD.print_params()
     print ' > [debug] Generating toy training data...'
-    train_data = tD.make_samples()
-    print ' > [debug] Number of toy training instances:', len(train_data)
+    tD.make_samples()
+    all_data = tD.all_samples
+    train_data = tD.train_samples
+    cv_data = tD.cv_samples
+    test_data = tD.test_samples
+    print ' > [debug] Total number of toy data instances:', len(all_data)
+    print ' > [debug] Number of training instances:', len(train_data)
+    print ' > [debug] Number of cv instances:', len(cv_data)
+    print ' > [debug] Number of test instances:', len(test_data)
+    print 
     print ' > [debug] Length of input, output pairs:', len(train_data[0])
     print ' > [debug] Number of samples per distribution:', len(train_data[0][0])
     print
-
-    print ' > [debug] Making new toyData object...'
-    tD2 = toyData(M = num_testing_pairs, eta = samples_per_dist)
-    print ' > [debug] Generating toy testing data...'
-    test_data = tD2.make_samples()
-    print ' > [debug] Number of toy testing instances:', len(test_data)
-    print ' > [debug] Length of input, output pairs:', len(test_data[0])
-    print ' > [debug] Number of samples per distribution:', len(test_data[0][0])
 
     X0_sample, Y0_sample = test_data[0][0], test_data[0][1]
     print
@@ -334,7 +347,7 @@ if __name__ == '__main__':
     hist(Y0_sample, bins=100, normed=True, color='r')
     plot(xs, map(Y0, xs), linewidth=2, color='b')
     plot(xs, map(Y0_hat, xs), 'x', linewidth=2)
-    title('M: ' + str(num_training_pairs) + ' eta: ' + str(samples_per_dist))
+    title('M: ' + str(M) + ' eta: ' + str(eta))
     axes = gca()
     axes.set_xlim(0, 1)
     axes.set_ylim(-1, 6)
