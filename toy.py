@@ -19,6 +19,9 @@ import scipy.integrate
 from random import *
 from pylab import *
 
+"""
+convenience function to plot distributions.
+"""
 def make_fig(dist_class, dist=None, mu = 0., sig = 1., xmin = -5., xmax = 5., fig_num=0, xlab=None, ylab=None, tit=None, tit_fontsz=30):
     if not dist: dist = dist_class(mu, sig)
     Xs = np.linspace(xmin, xmax, 100)
@@ -29,6 +32,9 @@ def make_fig(dist_class, dist=None, mu = 0., sig = 1., xmin = -5., xmax = 5., fi
     if ylab: ylabel(ylab, fontsize=24)
     if tit: title(tit, fontsize=tit_fontsz)
 
+"""
+draws count samples from pdf in range (xmin, xmax).
+"""
 def rejection_sample(xmin, xmax, pdf, count):
     results = []
     bns = np.linspace(xmin, xmax, 1000)
@@ -40,7 +46,9 @@ def rejection_sample(xmin, xmax, pdf, count):
             results.append(x)
     return results
 
-# returns indexed function from the cosine basis
+"""
+returns indexed function from the cosine basis.
+"""
 def cosine_basis(index):
 
     def one(x):
@@ -52,18 +60,53 @@ def cosine_basis(index):
     if (not index): return one
     else: return phi
 
-def fourier_coeff(index, sample):
-    phi = cosine_basis(index)
-    return sum([phi(s) for s in sample])/(1.*len(sample))
+"""
+list representation of fourier coefficients corresponding to nonparametric 
+estimation of the distribution from which sample was drawn.
 
+used to compute L2 distance.
+"""
+def fourier_coeffs(sample, num_terms):
+    result = []
+    for index in range(num_terms):
+        phi = cosine_basis(index)
+        coeff = sum([phi(s) for s in sample])/(1.*len(sample))
+        result.append(coeff)
+    return result
+
+"""
+actual estimated density function corresponding to nonparametric
+estimation of the distribution from which sample was drawn, 
+computed directly from sample.
+
+used to compute L1 distance, make plots.
+"""
 def approx_density(sample, num_terms):
-    coeffs = [fourier_coeff(index, sample) for index in range(num_terms)]
+
+    coeffs = fourier_coeffs(sample, num_terms)
 
     def f_hat(x):
         return sum([coeffs[index]*cosine_basis(index)(x) for index in range(num_terms)])
 
     return f_hat
 
+"""
+actual estimated density function corresponding to nonparametric
+estimation of the distribution from which sample was drawn, 
+computed from fourier coefficients.
+
+used to make plots.
+"""
+def coeffs_to_approx_density(coeffs):
+
+    def f_hat(x):
+        return sum([coeffs[index]*cosine_basis(index)(x) for index in range(len(coeffs))])
+
+    return f_hat
+
+"""
+f1, f2 are nonparametric estimator functions generated via approx_density().
+"""
 def L1_distance(f1, f2):
 
     def func(x):
@@ -72,9 +115,11 @@ def L1_distance(f1, f2):
     y, err = scipy.integrate.quad(func, 0., 1., limit=200)
     return y
 
-# TODO: implement
-def L2_distance(f1, f2):
-    return -1
+"""
+c1, c2 are coefficient vectors. they should have the same length.
+"""
+def L2_distance(c1, c2):
+    return sum([(c1[i] - c2[i])**2 for i in range(len(c1))])
 
 def triangle_kernel(x):
     return 1 - abs(x)
@@ -142,41 +187,60 @@ class Estimator:
 
         self.similar_output = None # temp
         self.max_weighted_output = None # temp
-        self.num_terms = 20
+        self.num_terms = num_terms
         self.dist_fn = dist_fn
         self.kernel = kernel
+        
+
+        # L1 norm -> function representation of nonparametric estimators
+        if (dist_fn == L1_distance):
+            self.nonparametric_estimation = approx_density
+            self.L2_mode = False
+        # L2 norm -> coefficient vector representation of nonparametric estimators
+        elif (dist_fn == L2_distance):
+            self.nonparametric_estimation = fourier_coeffs
+            self.L2_mode = True
 
         Xs = training_sample[:,0]
         Ys = training_sample[:,1]
-        self.X_hats = [approx_density(sample, num_terms) for sample in Xs]
-        self.Y_hats = [approx_density(sample, num_terms) for sample in Ys]
+        self.X_hats = [self.nonparametric_estimation(sample, num_terms) for sample in Xs]
+        self.Y_hats = [self.nonparametric_estimation(sample, num_terms) for sample in Ys]
         print
-        print ' >>> [debug] number of training instances:',len(self.X_hats)
+        print ' >>> [debug] total number of toy data instances:',len(self.X_hats)
 
     """
-    given a new input sample_0, estimates the expected output distribution
+    given a new input sample_0, estimates the expected output distribution.
+    returns estimator in function form and, if in L2 mode, coefficient form as well.
+    (in L1 mode, the coefficient form is None.)
     """
     def regress(self, sample_0):
 
-        print ' >>> [debug] approximating sample density fn for regression'
-        f0 = approx_density(sample_0, self.num_terms)
+        f0 = self.nonparametric_estimation(sample_0, self.num_terms)
+        
         print ' >>> [debug] computing distance from f0 to each training dist'
         distances = np.array([self.dist_fn(f0, f) for f in self.X_hats])
-        normed_distances = distances / (1. * max(distances)) # normalize by bandwidth 
-        print ' >>> [debug] computing kernel sum'
-        k_sum = sum([self.kernel(d) for d in normed_distances])        
-        print ' >>> [debug] kernel sum:',k_sum
+        bandwidth = 1.*max(distances) # temp
+        normed_distances = distances / bandwidth        
 
         print ' >>> [debug] computing weights'
-        weights = [self.kernel(normed_distances[i]) / k_sum for i in range(len(self.X_hats))] # temp
+        k_sum = sum([self.kernel(d) for d in normed_distances])        
+        weights = [self.kernel(normed_distances[i]) / k_sum for i in range(len(self.X_hats))]
 
-        self.similar_output = self.Y_hats[np.argmin(normed_distances)] # temp
-        self.max_weighted_output = self.Y_hats[np.argmax(weights)] # temp
+        #self.similar_output = self.Y_hats[np.argmin(normed_distances)] # temp
+        #self.max_weighted_output = self.Y_hats[np.argmax(weights)] # temp
 
-        def Y0(x):
+        def Y0_fn(x):
             return sum([self.Y_hats[i](x) * weights[i] for i in range(len(self.Y_hats))])
+
+        Y0_coeffs = None
+        if (self.L2_mode):
+            Y0_coeffs = []
+            for i in range(self.num_terms):
+                coeff = sum([self.Y_hats[j][i] * weights[i] for j in range(len(self.Y_hats))])
+                Y0_coeffs.append(coeff)
             
-        return Y0
+        print ' >>> [debug] Y0 coeffs:',Y0_coeffs # TEMP
+        return (Y0_fn, Y0_coeffs)
     
 class toyData:
 
@@ -318,11 +382,12 @@ if __name__ == '__main__':
     X0_sample, Y0_sample = test_data[0][0], test_data[0][1]
     print
     print ' > [debug] Training estimator (approximating training samples)... '
-    E = Estimator(train_data)
+    E = Estimator(train_data, dist_fn = L2_distance)
     print
     print ' > [debug] Regressing on new sample... '
     print
-    Y0_hat = E.regress(X0_sample)
+    (Y0_fn, Y0_coeffs) = E.regress(X0_sample)
+    Y0_hat = coeffs_to_approx_density(Y0_coeffs)
 
     Y0 = approx_density(Y0_sample, 20)
     print
@@ -338,6 +403,9 @@ if __name__ == '__main__':
     axes.set_xlim(0, 1)
     axes.set_ylim(-1, 6)
 
+    show()
+
+    """
     figure(1001)
     plot(xs, map(Y0, xs), linewidth=2, color='b')
     plot(xs, map(E.similar_output, xs), linewidth=2, color='r')
@@ -346,9 +414,6 @@ if __name__ == '__main__':
     axes.set_xlim(0, 1)
     axes.set_ylim(-1, 6)
     
-    show()
-
-    """
     dist = p_dist(.3, .6, .05, .07)
     sample = rejection_sample(0, 1, dist.eval, 5000)
     f_hat = approx_density(sample, num_terms=25)
