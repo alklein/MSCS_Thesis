@@ -64,24 +64,19 @@ def approx_density(sample, num_terms):
 
     return f_hat
 
-def distance(f1, f2):
+def L1_distance(f1, f2):
 
     def func(x):
         return abs(f1(x) - f2(x))
 
-    ### TEMP
-    """
-    figure(10)
-    xs = np.array(range(100))/100.
-    plot(xs, map(func, xs))
-    title('function we are integrating')
-    show()
-    """
-    ###
     y, err = scipy.integrate.quad(func, 0., 1., limit=200)
     return y
 
-def kernel(x):
+# TODO: implement
+def L2_distance(f1, f2):
+    return -1
+
+def triangle_kernel(x):
     return 1 - abs(x)
 
 class norm_pdf_dist:
@@ -143,11 +138,14 @@ class Estimator:
     of the input and output distributions
     2. pairwise distances between the distributions
     """
-    def __init__(self, training_sample, num_terms=20):
+    def __init__(self, training_sample, num_terms = 20, dist_fn = L1_distance, kernel = triangle_kernel):
 
         self.similar_output = None # temp
         self.max_weighted_output = None # temp
         self.num_terms = 20
+        self.dist_fn = dist_fn
+        self.kernel = kernel
+
         Xs = training_sample[:,0]
         Ys = training_sample[:,1]
         self.X_hats = [approx_density(sample, num_terms) for sample in Xs]
@@ -163,29 +161,17 @@ class Estimator:
         print ' >>> [debug] approximating sample density fn for regression'
         f0 = approx_density(sample_0, self.num_terms)
         print ' >>> [debug] computing distance from f0 to each training dist'
-        distances = np.array([distance(f0, f) for f in self.X_hats])
-        #normed_distances = distances / (1.*sum(distances)) # normalize by bandwidth 
-        # TEMP
+        distances = np.array([self.dist_fn(f0, f) for f in self.X_hats])
         normed_distances = distances / (1. * max(distances)) # normalize by bandwidth 
         print ' >>> [debug] computing kernel sum'
-        k_sum = sum([kernel(d) for d in normed_distances])        
+        k_sum = sum([self.kernel(d) for d in normed_distances])        
         print ' >>> [debug] kernel sum:',k_sum
 
         print ' >>> [debug] computing weights'
-        weights = [kernel(normed_distances[i]) / k_sum for i in range(len(self.X_hats))] # temp
+        weights = [self.kernel(normed_distances[i]) / k_sum for i in range(len(self.X_hats))] # temp
 
         self.similar_output = self.Y_hats[np.argmin(normed_distances)] # temp
         self.max_weighted_output = self.Y_hats[np.argmax(weights)] # temp
-
-        """
-        figure(0)
-        hist(distances)
-        title('distances')
-
-        figure(1)
-        hist(weights, bins=100)
-        title('weights')
-        """
 
         def Y0(x):
             return sum([self.Y_hats[i](x) * weights[i] for i in range(len(self.Y_hats))])
@@ -197,7 +183,7 @@ class toyData:
     """
     Makes new toyData object.
     """
-    def __init__(self, M=100, eta=100, holdout_frac = .1, verbose=True):
+    def __init__(self, M=100, eta=100, holdout_frac=.1, verbose=True):
 
         # if we're calling M the number of training + cv instances:
         self.num_toy_instances = int(1.1 * M) 
