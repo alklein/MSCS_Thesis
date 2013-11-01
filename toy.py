@@ -9,9 +9,6 @@
 __author__ = "Andrea Klein"
 
 import sys
-# if necessary: specify location of scipy on next line, e.g.:
-#sys.path.append('/System/Library/Frameworks/Python.framework/Versions/2.7/Extras/lib/python/py2app/recipes/')
-
 import time
 import math
 import numpy as np
@@ -186,23 +183,14 @@ class Estimator:
     cv_sample is a list of "holdout" instances for cross-validation;
     each instance is a tuple of the form [in, out]_i.
     """
-    def __init__(self, training_sample, cv_sample, num_terms = 20, dist_fn = L1_distance, kernel = triangle_kernel, bandwidths = [.25, .5, .75, 1., 1.25, 1.5, 1.75, 2.]):
+    def __init__(self, training_sample, cv_sample, num_terms = 20, dist_fn = L2_distance, kernel = triangle_kernel, nonparametric_estimation = fourier_coeffs, bandwidths = [.15, .25, .5, .75, 1., 1.25, 1.5]):
 
-        self.max_weighted_output = None 
         self.num_terms = num_terms
         self.dist_fn = dist_fn
         self.kernel = kernel        
+        self.nonparametric_estimation = nonparametric_estimation 
         self.bandwidths = bandwidths
         self.best_b = None
-
-        # L1 norm -> function representation of nonparametric estimators
-        if (dist_fn == L1_distance):
-            self.nonparametric_estimation = approx_density
-            self.L2_mode = False
-        # L2 norm -> coefficient vector representation of nonparametric estimators
-        elif (dist_fn == L2_distance):
-            self.nonparametric_estimation = fourier_coeffs
-            self.L2_mode = True
 
         self.Xs = training_sample[:,0]
         self.Ys = training_sample[:,1]
@@ -227,7 +215,7 @@ class Estimator:
             for i in range(len(self.cv_Xs)):
                 input_coeffs = self.cv_X_hats[i]
                 target_coeffs = self.cv_Y_hats[i]
-                (Y0_fn, Y0_coeffs) = self.regress(input_coeffs, b=b)
+                Y0_coeffs = self.regress(input_coeffs, b=b)
                 net_err += L2_distance(target_coeffs, Y0_coeffs)
 
             avg_err = net_err / (1.*len(self.cv_Xs))
@@ -245,42 +233,21 @@ class Estimator:
 
         if (not b): b = self.best_b # possibly still None
 
-        distances = np.array([self.dist_fn(f0, f) for f in self.X_hats])
-        normed_distances = distances / b
-
-        """
-        start = time.clock()
-        distances = []
-        for f in self.X_hats:
-            d = self.dist_fn(f0, f)
-            distances.append(d)
-        elapsed = time.clock() - start
-        print ' >>> [timer] TOTAL TIME TO COMPUTE PAIRWISE DISTANCES:',elapsed
-        print ' >>> [timer] AVG TIME PER PAIR:',elapsed/len(self.X_hats)
-        distances = np.array(distances)
-        """
-
-        #print ' >>> [debug] computing weights'
+        normed_distances = np.array([self.dist_fn(f0, f) for f in self.X_hats]) / b
         k_sum = sum([self.kernel(d) for d in normed_distances])        
-        #print ' >>> [debug] kernel sum:',k_sum
         weights = [self.kernel(normed_distances[i]) / k_sum for i in range(len(self.X_hats))]
-        #print ' >>> [debug] sum of weights:',sum(weights)
 
-        def Y0_fn(x):
-            return sum([self.Y_hats[i](x) * weights[i] for i in range(len(self.Y_hats))])
+#        def Y0_fn(x):
+#            return sum([self.Y_hats[i](x) * weights[i] for i in range(len(self.Y_hats))])
 
-        Y0_coeffs = None
-        if (self.L2_mode):
-            Y0_coeffs = np.zeros(self.num_terms)
-            for i in range(len(self.Y_hats)):
-                row = self.Y_hats[i]
-                weight = weights[i]
-                weighted_row = np.array([weight*val for val in row])
-                Y0_coeffs += weighted_row
-        else:
-            self.max_weighted_output = self.Y_hats[np.argmax(weights)] # temp
-
-        return (Y0_fn, Y0_coeffs)
+        Y0_coeffs = np.zeros(self.num_terms)
+        for i in range(len(self.Y_hats)):
+            row = self.Y_hats[i]
+            weight = weights[i]
+            weighted_row = np.array([weight*val for val in row])
+            Y0_coeffs += weighted_row
+            
+        return Y0_coeffs
 
     
 class toyData:
@@ -288,7 +255,7 @@ class toyData:
     """
     Makes new toyData object.
     """
-    def __init__(self, M=100, eta=100, holdout_frac=.1, verbose=True):
+    def __init__(self, M=100, eta=100, holdout_frac=.1, verbose=False):
 
         # if we're calling M the number of training + cv instances:
         self.num_toy_instances = int(1.1 * M) 
@@ -366,88 +333,70 @@ Demos code and runs built-in tests.
 if __name__ == '__main__':
 
 
-    M, eta = 100, 100
+    M, eta = 500, 500
 
     print
     print ' > RUNNING BUILT-IN TESTS'
 
-    """
-    print
-    print ' > MAKING DISTRIBUTION PLOTS'
-
-    #make_fig(norm_pdf_dist, tit='Normal PDF, CDF. Mu=0, Sig=1')
-    #make_fig(norm_cdf_dist)
-    #make_fig(g_dist, fig_num=1, tit='G Distribution. Mu=0, Sig=1')
-    make_fig(p_dist, dist=p_dist(.3, .6, .05, .07), xmin=0., xmax=1., fig_num=2)
-    #make_fig(p_dist, dist=p_dist(.3, .6, .05, .07), xmin=0., xmax=1., fig_num=2, tit='P and Q. Mu1=.3, Mu2=.6, Sig1=.05, Sig2=.07', tit_fontsz=24)
-    make_fig(q_dist, dist=q_dist(.3, .6, .05, .07), xmin=0., xmax=1., fig_num=2)
-
-    print
-    print ' > [debug] testing cosine basis...'
-    phi_0 = cosine_basis(0)
-    phi_1 = cosine_basis(1)
-    phi_2 = cosine_basis(2)
-    phi_3 = cosine_basis(3)
-
-    xs = np.array(range(100))/100.
-
-    figure(100)
-    plot(xs, map(phi_0, xs))
-    plot(xs, map(phi_1, xs))
-    plot(xs, map(phi_2, xs))
-    plot(xs, map(phi_3, xs))
-    """
-
     print
     print ' > [debug] Making new toyData object...'
     tD = toyData(M = M, eta = eta)
-    print ' > [debug] Checking param values...'
-    tD.print_params()
-    print ' > [debug] Generating toy training data...'
 
+    print
+    print ' > [debug] Generating toy training data...'
     tD.make_samples()
     all_data = tD.all_samples
     train_data = tD.train_samples
     cv_data = tD.cv_samples
     test_data = tD.test_samples
 
+    print
     print ' > [debug] Total number of toy data instances:', len(all_data)
     print ' > [debug] Number of training instances:', len(train_data)
     print ' > [debug] Number of cv instances:', len(cv_data)
     print ' > [debug] Number of test instances:', len(test_data)
-    print 
-    print ' > [debug] Length of input, output pairs:', len(train_data[0])
-    print ' > [debug] Number of samples per distribution:', len(train_data[0][0])
 
-    X0_sample, Y0_sample = test_data[0][0], test_data[0][1]
     print
     print ' > [debug] Creating estimator... '
     E = Estimator(train_data, cv_data, dist_fn = L2_distance, kernel = RBF_kernel)
     print ' > [debug] Training estimator... '
     E.train()
-    print
-    print ' > [debug] Regressing on new sample... '
-    print
-    X0_coeffs = fourier_coeffs(X0_sample, 20)
-    (Y0_fn, Y0_coeffs) = E.regress(X0_coeffs)
-    Y0_hat = coeffs_to_approx_density(Y0_coeffs)
 
-    Y0 = coeffs_to_approx_density(fourier_coeffs(Y0_sample, 20))
-    print
-    print ' > [debug] Making plots... '
-    print
+    for i in range(1):
 
-    xs = np.array(range(100))/100.
+        X0_sample, Y0_sample = test_data[i][0], test_data[i][1]
+        print
+        print ' > [debug] Regressing on new sample... '
+        print
+        X0_coeffs = fourier_coeffs(X0_sample, 20)
+        Y0_coeffs = E.regress(X0_coeffs)
+        X0_hat = coeffs_to_approx_density(X0_coeffs)
+        Y0_hat = coeffs_to_approx_density(Y0_coeffs)
+        
+        Y0 = coeffs_to_approx_density(fourier_coeffs(Y0_sample, 20))
+        print
+        print ' > [debug] Making plots... '
+        print
+        
+        xs = np.array(range(100))/100.
+        
+        figure(2*i)
+        hist(X0_sample, bins=100, normed=True, color='r')
+        plot(xs, map(X0_hat, xs), linewidth=2, color='b')
+        title('INPUT. M: ' + str(M) + ' eta: ' + str(eta))
+        axes = gca()
+        axes.set_xlim(0, 1)
+        axes.set_ylim(-1, 6)
 
-    figure(1000)
-    hist(Y0_sample, bins=100, normed=True, color='r')
-    plot(xs, map(Y0, xs), linewidth=2, color='b')
-    plot(xs, map(Y0_hat, xs), linewidth=2, color='k')
-    title('M: ' + str(M) + ' eta: ' + str(eta))
-    axes = gca()
-    axes.set_xlim(0, 1)
-    axes.set_ylim(-1, 6)
-
+        figure(2*i + 1)
+        hist(Y0_sample, bins=100, normed=True, color='r')
+        plot(xs, map(Y0, xs), linewidth=2, color='b')
+        plot(xs, map(Y0_hat, xs), linewidth=2, color='k')
+        title('OUTPUT. M: ' + str(M) + ' eta: ' + str(eta))
+        axes = gca()
+        axes.set_xlim(0, 1)
+        axes.set_ylim(-1, 6)
+        
     show()
 
     """
@@ -484,6 +433,31 @@ if __name__ == '__main__':
     print 'distance between dist and similar dist:', distance(dist.eval, dist2.eval)
     dist3 = p_dist(.1, .9, .03, .08)
     print 'distance between dist and less similar dist:', distance(dist.eval, dist3.eval)
+
+    print
+    print ' > MAKING DISTRIBUTION PLOTS'
+
+    #make_fig(norm_pdf_dist, tit='Normal PDF, CDF. Mu=0, Sig=1')
+    #make_fig(norm_cdf_dist)
+    #make_fig(g_dist, fig_num=1, tit='G Distribution. Mu=0, Sig=1')
+    make_fig(p_dist, dist=p_dist(.3, .6, .05, .07), xmin=0., xmax=1., fig_num=2)
+    #make_fig(p_dist, dist=p_dist(.3, .6, .05, .07), xmin=0., xmax=1., fig_num=2, tit='P and Q. Mu1=.3, Mu2=.6, Sig1=.05, Sig2=.07', tit_fontsz=24)
+    make_fig(q_dist, dist=q_dist(.3, .6, .05, .07), xmin=0., xmax=1., fig_num=2)
+
+    print
+    print ' > [debug] testing cosine basis...'
+    phi_0 = cosine_basis(0)
+    phi_1 = cosine_basis(1)
+    phi_2 = cosine_basis(2)
+    phi_3 = cosine_basis(3)
+
+    xs = np.array(range(100))/100.
+
+    figure(100)
+    plot(xs, map(phi_0, xs))
+    plot(xs, map(phi_1, xs))
+    plot(xs, map(phi_2, xs))
+    plot(xs, map(phi_3, xs))
 
     show()
     """
