@@ -12,7 +12,7 @@ import sys
 import time
 import math
 import numpy as np
-import scipy.integrate
+#import scipy.integrate
 
 from random import *
 from pylab import *
@@ -105,6 +105,7 @@ def coeffs_to_approx_density(coeffs):
 """
 f1, f2 are nonparametric estimator functions generated via approx_density().
 """
+# NOT CURRENTLY IN USE. TO USE, NEED TO import scipy.integrate
 def L1_distance(f1, f2):
 
     def func(x):
@@ -119,12 +120,20 @@ c1, c2 are coefficient vectors. they should have the same length.
 def L2_distance(c1, c2):
     return sum([(c1[i] - c2[i])**2 for i in range(len(c1))])
 
+"""
+i.e. decreasing line;
+defined for x in [0, 1]
+"""
 def triangle_kernel(x):
     if (0 <= x <= 1):
         return 1. - abs(x)
     else:
         return 0.
 
+"""
+i.e. Gaussian kernel function;
+defined for x in [0, +inf)
+"""
 def RBF_kernel(x):
     return math.exp(-(x**2)/2.)
 
@@ -200,10 +209,10 @@ class Estimator:
     def train(self):
 
         # fit training and cv data via nonparametric density estimation
-        print ' >>> [debug] fitting training data... '
+        print ' >>> [debug] Fitting training data... '
         self.X_hats = [self.nonparametric_estimation(sample, self.num_terms) for sample in self.Xs]
         self.Y_hats = [self.nonparametric_estimation(sample, self.num_terms) for sample in self.Ys]
-        print ' >>> [debug] fitting cv data... '
+        print ' >>> [debug] Fitting cv data... '
         self.cv_X_hats = [self.nonparametric_estimation(sample, self.num_terms) for sample in self.cv_Xs]
         self.cv_Y_hats = [self.nonparametric_estimation(sample, self.num_terms) for sample in self.cv_Ys]
 
@@ -217,11 +226,11 @@ class Estimator:
                 target_coeffs = self.cv_Y_hats[i]
                 Y0_coeffs = self.regress(input_coeffs, b=b)
                 net_err += L2_distance(target_coeffs, Y0_coeffs)
-
             avg_err = net_err / (1.*len(self.cv_Xs))
-            print ' >>> >>> [debug] average L2 error for bandwidth',b,'-',avg_err 
+            print ' >>> >>> [debug] Average L2 error for bandwidth',b,'-',avg_err 
             b_errs.append(avg_err)
-        print 'best b:', self.bandwidths[np.argmin(b_errs)]
+
+        print ' >>> >>> [debug] Bandwidth selected:', self.bandwidths[np.argmin(b_errs)]
         self.best_b = self.bandwidths[np.argmin(b_errs)]
 
     """
@@ -236,9 +245,6 @@ class Estimator:
         normed_distances = np.array([self.dist_fn(f0, f) for f in self.X_hats]) / b
         k_sum = sum([self.kernel(d) for d in normed_distances])        
         weights = [self.kernel(normed_distances[i]) / k_sum for i in range(len(self.X_hats))]
-
-#        def Y0_fn(x):
-#            return sum([self.Y_hats[i](x) * weights[i] for i in range(len(self.Y_hats))])
 
         Y0_coeffs = np.zeros(self.num_terms)
         for i in range(len(self.Y_hats)):
@@ -327,16 +333,14 @@ class toyData:
         print
 
 
-"""
-Demos code and runs built-in tests.
-"""
-if __name__ == '__main__':
-
-
-    M, eta = 500, 500
+def test():
 
     print
-    print ' > RUNNING BUILT-IN TESTS'
+    print ' > No tests currently installed.'
+
+def demo(num_plots = 1):
+
+    M, eta = 500, 500
 
     print
     print ' > [debug] Making new toyData object...'
@@ -362,22 +366,18 @@ if __name__ == '__main__':
     print ' > [debug] Training estimator... '
     E.train()
 
-    for i in range(1):
+    for i in range(num_plots):
 
         X0_sample, Y0_sample = test_data[i][0], test_data[i][1]
         print
         print ' > [debug] Regressing on new sample... '
-        print
         X0_coeffs = fourier_coeffs(X0_sample, 20)
         Y0_coeffs = E.regress(X0_coeffs)
         X0_hat = coeffs_to_approx_density(X0_coeffs)
-        Y0_hat = coeffs_to_approx_density(Y0_coeffs)
-        
+        Y0_hat = coeffs_to_approx_density(Y0_coeffs)        
         Y0 = coeffs_to_approx_density(fourier_coeffs(Y0_sample, 20))
-        print
-        print ' > [debug] Making plots... '
-        print
-        
+
+        print ' > [debug] Making plots... '        
         xs = np.array(range(100))/100.
         
         figure(2*i)
@@ -398,6 +398,21 @@ if __name__ == '__main__':
         axes.set_ylim(-1, 6)
         
     show()
+
+    
+
+"""
+Runs built-in tests and a demo.
+"""
+if __name__ == '__main__':
+
+    print
+    print ' > RUNNING BUILT-IN TESTS'
+    test()
+
+    print
+    print ' > RUNNING DEMO'
+    demo()
 
     """
     figure(1001)
