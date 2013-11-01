@@ -246,12 +246,18 @@ class Estimator:
         k_sum = sum([self.kernel(d) for d in normed_distances])        
         weights = [self.kernel(normed_distances[i]) / k_sum for i in range(len(self.X_hats))]
 
+        """
         Y0_coeffs = np.zeros(self.num_terms)
         for i in range(len(self.Y_hats)):
             row = self.Y_hats[i]
             weight = weights[i]
             weighted_row = np.array([weight*val for val in row])
             Y0_coeffs += weighted_row
+        """
+
+        a = np.matrix.transpose(np.array(self.Y_hats))
+        b = np.array([[w] for w in weights])
+        Y0_coeffs = np.dot(a, b)
             
         return Y0_coeffs
 
@@ -324,6 +330,18 @@ class toyData:
 
 
     """
+    Dumps all of this object's samples to a file.
+    """
+    def save_samples(self, filename):
+        print 'TODO'
+
+    """
+    Attempts to load samples from file according to specified values of M, eta.
+    """
+    def load_samples(self, filename):
+        print 'TODO'
+
+    """
     Debugging method.
     """
     def print_params(self):
@@ -340,7 +358,7 @@ def test():
 
 def demo(num_plots = 1):
 
-    M, eta = 500, 500
+    M, eta = 1000, 1000
 
     print
     print ' > [debug] Making new toyData object...'
