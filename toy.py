@@ -8,6 +8,7 @@
 
 __author__ = "Andrea Klein"
 
+import os
 import sys
 import time
 import math
@@ -105,7 +106,7 @@ def coeffs_to_approx_density(coeffs):
 """
 f1, f2 are nonparametric estimator functions generated via approx_density().
 """
-# NOT CURRENTLY IN USE. TO USE, NEED TO import scipy.integrate
+# NOT CURRENTLY IN USE. TO USE, NEED TO UNCOMMENT #import scipy.integrate
 def L1_distance(f1, f2):
 
     def func(x):
@@ -246,15 +247,6 @@ class Estimator:
         k_sum = sum([self.kernel(d) for d in normed_distances])        
         weights = [self.kernel(normed_distances[i]) / k_sum for i in range(len(self.X_hats))]
 
-        """
-        Y0_coeffs = np.zeros(self.num_terms)
-        for i in range(len(self.Y_hats)):
-            row = self.Y_hats[i]
-            weight = weights[i]
-            weighted_row = np.array([weight*val for val in row])
-            Y0_coeffs += weighted_row
-        """
-
         a = np.matrix.transpose(np.array(self.Y_hats))
         b = np.array([[w] for w in weights])
         Y0_coeffs = np.dot(a, b)
@@ -331,15 +323,44 @@ class toyData:
 
     """
     Dumps all of this object's samples to a file.
+    Instances are separated by newlines.
+    Input, Output pairs are separated by semicolons.
+    Samples (from either an input or an output function) are separated by commas.
+
+    Clobbers any existing file with this filename.
     """
     def save_samples(self, filename):
-        print 'TODO'
+        os.system('rm ' + filename)
+        np.savetxt(filename, [])
+        f = open(filename, 'r+')
+            
+        for instance in self.all_samples:
+            inp, outp = instance[0], instance[1]
+            s1, s2 = '', ''
+            for val in inp: s1 += str(val) + ','
+            for val in outp: s2 += str(val) + ','
+            s1, s2 = s1[:-1], s2[:-1] # remove final commas
+            f.write(s1 + ';' + s2 + '\n')
+        f.close()
 
     """
     Attempts to load samples from file according to specified values of M, eta.
     """
     def load_samples(self, filename):
-        print 'TODO'
+        data = []
+        for instance in open(filename):
+            print 'instance:',instance # TEMP
+            raw_inp, raw_outp = instance.split(';')
+            inp = [float(val) for val in raw_inp.split(',')]
+            outp = [float(val) for val in raw_inp.split(',')]
+            data.append([inp, outp])
+
+        self.all_samples = np.array([line[:self.eta] for line in data[:self.M]])
+
+        holdout_sz = int(self.holdout_frac * self.M)
+        self.cv_samples = self.all_samples[:holdout_sz]
+        self.test_samples = self.all_samples[holdout_sz:2*holdout_sz]
+        self.train_samples = self.all_samples[2*holdout_sz:]
 
     """
     Debugging method.
@@ -358,7 +379,7 @@ def test():
 
 def demo(num_plots = 1):
 
-    M, eta = 1000, 1000
+    M, eta = 10, 10
 
     print
     print ' > [debug] Making new toyData object...'
@@ -371,6 +392,10 @@ def demo(num_plots = 1):
     train_data = tD.train_samples
     cv_data = tD.cv_samples
     test_data = tD.test_samples
+
+    # TEMP
+    tD.save_samples('temp.txt')
+    tD.load_samples('temp.txt')
 
     print
     print ' > [debug] Total number of toy data instances:', len(all_data)
