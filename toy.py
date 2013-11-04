@@ -13,7 +13,6 @@ import sys
 import time
 import math
 import numpy as np
-#import scipy.integrate
 
 from random import *
 from pylab import *
@@ -106,7 +105,7 @@ def coeffs_to_approx_density(coeffs):
 """
 f1, f2 are nonparametric estimator functions generated via approx_density().
 """
-# NOT CURRENTLY IN USE. TO USE, NEED TO UNCOMMENT #import scipy.integrate
+# NOT CURRENTLY IN USE. TO USE, NEED TO ADD import scipy.integrate
 def L1_distance(f1, f2):
 
     def func(x):
