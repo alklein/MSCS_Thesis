@@ -327,12 +327,22 @@ class toyData:
     Input, Output pairs are separated by semicolons.
     Samples (from either an input or an output function) are separated by commas.
 
-    Clobbers any existing file with this filename.
+    When not in append mode, clobbers any existing file with this filename.
     """
-    def save_samples(self, filename):
-        os.system('rm ' + filename)
-        np.savetxt(filename, [])
-        f = open(filename, 'r+')
+    def save_samples(self, filename, append=False):
+        if append:
+            try:
+                # open existing file in append mode
+                f = open(filename, 'a+')
+            except: 
+                # if file does not exist, create it and write from start
+                np.savetxt(filename, [])
+                f = open(filename, 'a+')
+        else:
+            # clobber file if it exists; create new file and write from start
+            os.system('rm ' + filename)
+            np.savetxt(filename, [])
+            f = open(filename, 'r+')
             
         for instance in self.all_samples:
             inp, outp = instance[0], instance[1]
@@ -349,7 +359,6 @@ class toyData:
     def load_samples(self, filename):
         data = []
         for instance in open(filename):
-            print 'instance:',instance # TEMP
             raw_inp, raw_outp = instance.split(';')
             inp = [float(val) for val in raw_inp.split(',')]
             outp = [float(val) for val in raw_inp.split(',')]
@@ -379,23 +388,30 @@ def test():
 
 def demo(num_plots = 1):
 
-    M, eta = 10, 10
+    M, eta = 5000, 5000
 
     print
     print ' > [debug] Making new toyData object...'
     tD = toyData(M = M, eta = eta)
 
+    """
     print
     print ' > [debug] Generating toy training data...'
     tD.make_samples()
+    """
+
+    # TEMP
+    #print ' > [debug] Writing toy data to file'
+    #tD.save_samples('data.txt', append=True) 
+
+    print
+    print ' > [debug] Reading toy data from file... '
+    tD.load_samples('data.txt')
+
     all_data = tD.all_samples
     train_data = tD.train_samples
     cv_data = tD.cv_samples
     test_data = tD.test_samples
-
-    # TEMP
-    tD.save_samples('temp.txt')
-    tD.load_samples('temp.txt')
 
     print
     print ' > [debug] Total number of toy data instances:', len(all_data)
