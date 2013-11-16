@@ -1,13 +1,15 @@
 import sys
 import time
+import itertools
 import numpy as np
 
+from pylab import *
 from Queue import Queue
 from multiprocessing import Pool
 from multiprocessing.managers import BaseManager
-from toy import fourier_coeffs, cosine_basis
+from toy import fourier_coeffs, cosine_basis, coeffs_to_approx_density
 
-def load_samples(filename, max_count=100):
+def load_samples(filename, max_count=1000):
   data = []
   count = 0
   for instance in open(filename):
@@ -50,6 +52,15 @@ coeffs = Map(data)
 diff = time.clock() - start_time
 print ' > time to compute coeffs:',diff
 
+ex_sample = data[0][0]
+ex_coeffs = coeffs[0][0]
+f_hat = coeffs_to_approx_density(ex_coeffs)
+xs = np.array(range(100))/100.
+figure(0)
+hist(ex_sample, bins=100, normed=True, color='r')
+plot(xs, map(f_hat, xs), linewidth=2, color='b')
+
+
 for num_processes in [1, 2, 5, 10]:
 
   partitioned_data = list(chunks(data, len(data) / num_processes))
@@ -63,14 +74,15 @@ for num_processes in [1, 2, 5, 10]:
   coeffs = P.map(Map, partitioned_data)
   diff = time.clock() - start_time
   print ' > time to compute coeffs:',diff
-  print ' > dimensions of coeffs:',len(coeffs),len(coeffs[0]),len(coeffs[0][0]),len(coeffs[0][0][0])
 
-  print 'Coalescing Results'
-  # TODO: replace queue with ball tree
-  Q = Queue()
-  for chunk in coeffs:
-    for [xcoeffs, ycoeffs] in chunk:
-      Q.put(str(xcoeffs))
-      D[str(xcoeffs)] = str(ycoeffs)
-      
-  print 'Final number of items in data structure:',Q.qsize()
+  coeffs = list(itertools.chain(*coeffs)) # flatten coeffs
+  print ' > dimensions of flattened coeffs:',len(coeffs),len(coeffs[0]),len(coeffs[0][0])
+
+print
+print 'Coalescing Results'
+# TODO: replace queue with ball tree
+Q = Queue()
+for [xcoeffs, ycoeffs] in coeffs:
+  Q.put(str(xcoeffs))
+  D[str(xcoeffs)] = str(ycoeffs)
+print 'Final number of items in data structure:',Q.qsize()

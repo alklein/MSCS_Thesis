@@ -17,7 +17,7 @@ This project requires the following scientific computing libraries:
 
 * numpy
 * scipy
-* pyplot
+* pylab
 
 Acknowledgements
 ----------------
