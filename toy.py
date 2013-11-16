@@ -393,13 +393,11 @@ def demo(num_plots = 1):
     print ' > [debug] Making new toyData object...'
     tD = toyData(M = M, eta = eta)
 
-    """
-    print
-    print ' > [debug] Generating toy training data...'
-    tD.make_samples()
-    """
+    #print
+    #print ' > [debug] Generating toy training data...'
+    #tD.make_samples()
 
-    # TEMP
+    #print
     #print ' > [debug] Writing toy data to file'
     #tD.save_samples('data.txt', append=True) 
 
