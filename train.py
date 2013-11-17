@@ -9,7 +9,7 @@ from multiprocessing import Pool
 from multiprocessing.managers import BaseManager
 from toy import fourier_coeffs, cosine_basis, coeffs_to_approx_density
 
-def load_samples(filename, max_count=1000):
+def load_samples(filename, max_count=5000):
   data = []
   count = 0
   for instance in open(filename):
@@ -72,6 +72,8 @@ for num_processes in [1, 2, 5, 10]:
   print ' > using',num_processes,'process(es)'
   start_time = time.clock()
   coeffs = P.map(Map, partitioned_data)
+  P.close()
+  P.join()
   diff = time.clock() - start_time
   print ' > time to compute coeffs:',diff
 

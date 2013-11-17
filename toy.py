@@ -12,10 +12,12 @@ import os
 import sys
 import time
 import math
+import itertools
 import numpy as np
 
-from random import *
 from pylab import *
+from random import *
+from multiprocessing import Pool
 
 """
 convenience function to plot distributions.
@@ -137,6 +139,26 @@ defined for x in [0, +inf)
 def RBF_kernel(x):
     return math.exp(-(x**2)/2.)
 
+"""
+chunk generator for parallel processing
+"""
+def chunks(l, n):
+    for i in xrange(0, len(l), n):
+        yield l[i:i+n]
+   
+"""
+partitioning function for parallel processing
+"""         
+def partitioned(data, num_processes):
+    return list(chunks(data, len(data) / num_processes))
+
+"""
+Map function for parallel processing
+"""
+def Map(X):
+    return [fourier_coeffs(x, 20) for x in X]
+
+
 class norm_pdf_dist:
 
     def __init__(self, mu, sig):
@@ -185,6 +207,7 @@ class q_dist:
     def eval(self, x):
         return .5 * (self.g1.eval(x) + self.g2.eval(x))
 
+
 class Estimator:
 
     """
@@ -206,15 +229,28 @@ class Estimator:
         self.cv_Xs = cv_sample[:,0]
         self.cv_Ys = cv_sample[:,1]
 
-    def train(self):
+    def train(self, parallel=False, num_processes=5):
 
         # fit training and cv data via nonparametric density estimation
-        print ' >>> [debug] Fitting training data... '
-        self.X_hats = [self.nonparametric_estimation(sample, self.num_terms) for sample in self.Xs]
-        self.Y_hats = [self.nonparametric_estimation(sample, self.num_terms) for sample in self.Ys]
-        print ' >>> [debug] Fitting cv data... '
-        self.cv_X_hats = [self.nonparametric_estimation(sample, self.num_terms) for sample in self.cv_Xs]
-        self.cv_Y_hats = [self.nonparametric_estimation(sample, self.num_terms) for sample in self.cv_Ys]
+        if (not parallel):            
+            print ' >>> [debug] Fitting training data sequentially... '
+            self.X_hats = [self.nonparametric_estimation(sample, self.num_terms) for sample in self.Xs]
+            self.Y_hats = [self.nonparametric_estimation(sample, self.num_terms) for sample in self.Ys]
+            print ' >>> [debug] Fitting cv data sequentially... '
+            self.cv_X_hats = [self.nonparametric_estimation(sample, self.num_terms) for sample in self.cv_Xs]
+            self.cv_Y_hats = [self.nonparametric_estimation(sample, self.num_terms) for sample in self.cv_Ys]
+        else:
+            P = Pool(processes=num_processes,)
+            print ' >>> [debug] Fitting training data in parallel with',num_processes,'processes... '
+            coeffs = P.map(Map, partitioned(self.Xs, num_processes))
+            self.X_hats = list(itertools.chain(*coeffs))
+            coeffs = P.map(Map, partitioned(self.Ys, num_processes))
+            self.Y_hats = list(itertools.chain(*coeffs))
+            print ' >>> [debug] Fitting cv data in parallel with',num_processes,'processes... '
+            coeffs = P.map(Map, partitioned(self.cv_Xs, num_processes))
+            self.cv_X_hats = list(itertools.chain(*coeffs))
+            coeffs = P.map(Map, partitioned(self.cv_Ys, num_processes))
+            self.cv_Y_hats = list(itertools.chain(*coeffs))
 
         # cross-validate bandwidths
         print ' >>> [debug] cross-validating bandwidths...'
@@ -380,12 +416,22 @@ class toyData:
         print
 
 
-def test():
+def test():    
 
     brute_times = []
     load_times = []
-    Ms = [100, 500, 1000, 1500, 2000, 5000, 10000]:
-    num_trials = 3
+    Ms = [100, 500, 1000, 1500, 2000, 5000] #, 10000]
+    num_trials = 2
+
+    brute = [3.45, 24.25, 69.9, 137.33, 220.8, 1146.7]
+    load = [13.77, 13.92, 14.02, 13.57, 14.02, 14.85]
+
+    figure(0)
+    semilogy(Ms, brute)
+    semilogy(Ms, load)
+    xlabel('Number of samples', fontsize=20)
+    ylabel('Time to make (black) vs. load (red) data (s)', fontsize=20)
+    show()
 
     for M in Ms:
         print 
@@ -406,6 +452,7 @@ def test():
             times += diff
         avg_time = times/num_trials
         print ' > ... avg. time:',avg_time
+        print ' > ... num samples made:',len(tD.all_samples)
         brute_times.append(avg_time)
 
         tD2 = toyData(M = M, eta = eta)
@@ -421,13 +468,16 @@ def test():
             times += diff
         avg_time = times/num_trials
         print ' > ... avg. time:',avg_time
+        print ' > ... num samples made:',len(tD2.all_samples)
         load_times.append(avg_time)
 
+    print 'brute:',brute_times
+    print 'load:',load_times
     exit(0)
 
 def demo(num_plots = 1):
 
-    M, eta = 5000, 5000
+    M, eta = 500, 500
 
     print
     print ' > [debug] Making new toyData object...'
@@ -460,7 +510,7 @@ def demo(num_plots = 1):
     print ' > [debug] Creating estimator... '
     E = Estimator(train_data, cv_data, dist_fn = L2_distance, kernel = RBF_kernel)
     print ' > [debug] Training estimator... '
-    E.train()
+    E.train(parallel=True)
 
     for i in range(num_plots):
 
@@ -502,9 +552,11 @@ Runs built-in tests and a demo.
 """
 if __name__ == '__main__':
 
+    """
     print
     print ' > RUNNING BUILT-IN TESTS'
     test()
+    """
 
     print
     print ' > RUNNING DEMO'
