@@ -382,8 +382,48 @@ class toyData:
 
 def test():
 
-    print
-    print ' > No tests currently installed.'
+    brute_times = []
+    load_times = []
+    Ms = [100, 500, 1000, 1500, 2000, 5000, 10000]:
+    num_trials = 3
+
+    for M in Ms:
+        print 
+        print ' ........................'
+        print 
+        print ' > Making toyData obj with M, eta =',M
+        eta = M
+        tD = toyData(M = M, eta = eta)
+
+        print
+        print ' > Making samples from scratch'
+        times = 0
+        for i in range(num_trials):
+            start = time.clock()
+            tD.make_samples()
+            diff = time.clock() - start
+            print ' > ... time:',diff
+            times += diff
+        avg_time = times/num_trials
+        print ' > ... avg. time:',avg_time
+        brute_times.append(avg_time)
+
+        tD2 = toyData(M = M, eta = eta)
+
+        print
+        print ' > Loading samples from file'
+        times = 0
+        for i in range(num_trials):
+            start = time.clock()
+            tD2.load_samples('data.txt')
+            diff = time.clock() - start
+            print ' > ... time:',diff
+            times += diff
+        avg_time = times/num_trials
+        print ' > ... avg. time:',avg_time
+        load_times.append(avg_time)
+
+    exit(0)
 
 def demo(num_plots = 1):
 
