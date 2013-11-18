@@ -147,17 +147,64 @@ def chunks(l, n):
         yield l[i:i+n]
    
 """
-partitioning function for parallel processing
+simple partitioning function for parallel processing
 """         
 def partitioned(data, num_processes):
     return list(chunks(data, len(data) / num_processes))
 
+
 """
-Map function for parallel processing
+partitioning function for parallel error calculation
+"""         
+def multi_partitioned(E, test_Xs, test_Ys, KNN, k, num_processes):
+    partitioned_Xs = partitioned(test_Xs, num_processes)
+    partitioned_Ys = partitioned(test_Ys, num_processes)
+    return [[E, partitioned_Xs[i], partitioned_Ys[i], KNN, k] for i in range(len(partitioned_Xs))]
+
 """
-def Map(X):
+Map function for parallel computation of Fourier coeffs
+"""
+def coeff_Map(X):
     return [fourier_coeffs(x, 20) for x in X]
 
+"""
+Map function for parallel computation of test errors
+"""
+def err_Map(X):
+    (E, test_Xs, test_Ys, KNN, k) = X
+    test_X_hats = [E.nonparametric_estimation(sample, E.num_terms) for sample in test_Xs]
+    test_Y_hats = [E.nonparametric_estimation(sample, E.num_terms) for sample in test_Ys]
+    errs = []
+    for i in range(len(test_X_hats)):
+        if (KNN): est_Y_hat = E.KNN_regress(test_X_hats[i], k=k)
+        else: est_Y_hat = E.regress(test_X_hats[i])
+        err = E.dist_fn(test_Y_hats[i], est_Y_hat)
+        errs.append(err)
+    return errs
+
+"""
+Computes L2 errors on test instances
+"""
+def test_errs(E, test_data, parallel=False, num_processes=5, KNN=False, k=1):
+    test_Xs, test_Ys = test_data[:,0], test_data[:,1]    
+    if (not parallel):
+        print ' >>> [debug] Computing L2 test errors sequentially... '
+        if (KNN): print ' >>> [debug] < using K =',k,'>'
+        test_X_hats = [E.nonparametric_estimation(sample, E.num_terms) for sample in test_Xs]
+        test_Y_hats = [E.nonparametric_estimation(sample, E.num_terms) for sample in test_Ys]
+        errs = []
+        for i in range(len(test_X_hats)):
+            if (KNN): est_Y_hat = E.KNN_regress(test_X_hats[i], k=k)
+            else: est_Y_hat = E.regress(test_X_hats[i])
+            err = E.dist_fn(test_Y_hats[i], est_Y_hat)
+            errs.append(err)
+    else:
+        P = Pool(processes=num_processes,)
+        print ' >>> [debug] Computing L2 test errors in parallel with',num_processes,'processes... '
+        if (KNN): print ' >>> [debug] < using K =',k,'>'
+        test_X_errs = P.map(err_Map, multi_partitioned(E, test_Xs, test_Ys, KNN, k, num_processes))
+        errs = list(itertools.chain(*test_X_errs))
+    return errs
 
 class norm_pdf_dist:
 
@@ -215,7 +262,7 @@ class Estimator:
     cv_sample is a list of "holdout" instances for cross-validation;
     each instance is a tuple of the form [in, out]_i.
     """
-    def __init__(self, training_sample, cv_sample, num_terms = 20, dist_fn = L2_distance, kernel = triangle_kernel, nonparametric_estimation = fourier_coeffs, bandwidths = [.15, .25, .5, .75, 1., 1.25, 1.5]):
+    def __init__(self, training_sample, cv_sample, num_terms = 20, dist_fn = L2_distance, kernel = triangle_kernel, nonparametric_estimation = fourier_coeffs, bandwidths = [.15, .25]): # bandwidths = [.15, .25, .5, .75, 1., 1.25, 1.5]): TEMP!!!!
 
         self.num_terms = num_terms
         self.dist_fn = dist_fn
@@ -242,14 +289,14 @@ class Estimator:
         else:
             P = Pool(processes=num_processes,)
             print ' >>> [debug] Fitting training data in parallel with',num_processes,'processes... '
-            coeffs = P.map(Map, partitioned(self.Xs, num_processes))
+            coeffs = P.map(coeff_Map, partitioned(self.Xs, num_processes))
             self.X_hats = list(itertools.chain(*coeffs))
-            coeffs = P.map(Map, partitioned(self.Ys, num_processes))
+            coeffs = P.map(coeff_Map, partitioned(self.Ys, num_processes))
             self.Y_hats = list(itertools.chain(*coeffs))
             print ' >>> [debug] Fitting cv data in parallel with',num_processes,'processes... '
-            coeffs = P.map(Map, partitioned(self.cv_Xs, num_processes))
+            coeffs = P.map(coeff_Map, partitioned(self.cv_Xs, num_processes))
             self.cv_X_hats = list(itertools.chain(*coeffs))
-            coeffs = P.map(Map, partitioned(self.cv_Ys, num_processes))
+            coeffs = P.map(coeff_Map, partitioned(self.cv_Ys, num_processes))
             self.cv_Y_hats = list(itertools.chain(*coeffs))
 
         # cross-validate bandwidths
@@ -283,6 +330,27 @@ class Estimator:
         weights = [self.kernel(normed_distances[i]) / k_sum for i in range(len(self.X_hats))]
 
         a = np.matrix.transpose(np.array(self.Y_hats))
+        b = np.array([[w] for w in weights])
+        Y0_coeffs = np.dot(a, b)
+            
+        return Y0_coeffs
+
+    """
+    like regress(), but only considers K nearest neighbors to f0
+    from the training data.
+    """
+    def KNN_regress(self, f0, b = None, k = 1):
+
+        if (not b): b = self.best_b # possibly still None
+
+        normed_distances = np.array([self.dist_fn(f0, f) for f in self.X_hats]) / b
+        sorted_Xs = np.array(self.X_hats)[normed_distances.argsort()][:k]
+        sorted_Ys = np.array(self.Y_hats)[normed_distances.argsort()][:k]
+        normed_distances = sorted(normed_distances)[:k]
+        k_sum = sum([self.kernel(d) for d in normed_distances])        
+        weights = [self.kernel(normed_distances[i]) / k_sum for i in range(len(sorted_Xs))]
+
+        a = np.matrix.transpose(np.array(sorted_Xs))
         b = np.array([[w] for w in weights])
         Y0_coeffs = np.dot(a, b)
             
@@ -477,7 +545,7 @@ def test():
 
 def demo(num_plots = 1):
 
-    M, eta = 500, 500
+    M, eta = 100, 100
 
     print
     print ' > [debug] Making new toyData object...'
@@ -518,7 +586,8 @@ def demo(num_plots = 1):
         print
         print ' > [debug] Regressing on new sample... '
         X0_coeffs = fourier_coeffs(X0_sample, 20)
-        Y0_coeffs = E.regress(X0_coeffs)
+        #Y0_coeffs = E.regress(X0_coeffs)
+        Y0_coeffs = E.KNN_regress(X0_coeffs, k=1)
         X0_hat = coeffs_to_approx_density(X0_coeffs)
         Y0_hat = coeffs_to_approx_density(Y0_coeffs)        
         Y0 = coeffs_to_approx_density(fourier_coeffs(Y0_sample, 20))
@@ -543,9 +612,17 @@ def demo(num_plots = 1):
         axes.set_xlim(0, 1)
         axes.set_ylim(-1, 6)
         
-    show()
+#    show()
 
-    
+    ks = [1, 10, 100]
+    avg_errs = [np.average(test_errs(E, test_data, parallel=True, KNN=True, k=ks[i])) for i in range(len(ks))]
+    avg_errs.append(np.average(test_errs(E, test_data, parallel=True, KNN=False)))
+
+    print
+    for i in range(len(ks)):
+        print ' > [debug] Average test error, k =',ks[i],':', avg_errs[i]
+    print ' > [debug] Average test error, k = all:', avg_errs[-1]
+
 
 """
 Runs built-in tests and a demo.

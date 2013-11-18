@@ -9,7 +9,7 @@ from multiprocessing import Pool
 from multiprocessing.managers import BaseManager
 from toy import fourier_coeffs, cosine_basis, coeffs_to_approx_density
 
-def load_samples(filename, max_count=5000):
+def load_samples(filename, max_count=100):
   data = []
   count = 0
   for instance in open(filename):
@@ -42,8 +42,9 @@ def Reduce(XX):
   return q
 
 data_file = 'data.txt'
+num_samples = 1000
 print 'Loading Data'
-data = load_samples(data_file) # TODO: load in parallel?
+data = load_samples(data_file, max_count = num_samples) # TODO: load in parallel?
 print ' > dimensions of data:',len(data),len(data[0]),len(data[0][0])
 
 print ' > computing coeffs sequentially for comparison'
@@ -51,17 +52,22 @@ start_time = time.clock()
 coeffs = Map(data)
 diff = time.clock() - start_time
 print ' > time to compute coeffs:',diff
+comp = diff
 
 ex_sample = data[0][0]
 ex_coeffs = coeffs[0][0]
 f_hat = coeffs_to_approx_density(ex_coeffs)
 xs = np.array(range(100))/100.
+
+"""
 figure(0)
 hist(ex_sample, bins=100, normed=True, color='r')
 plot(xs, map(f_hat, xs), linewidth=2, color='b')
+"""
 
-
-for num_processes in [1, 2, 5, 10]:
+Ds = []
+proc_nums = [1, 5, 10, 15, 20, 25]
+for num_processes in proc_nums:
 
   partitioned_data = list(chunks(data, len(data) / num_processes))
   P = Pool(processes=num_processes,)
@@ -76,10 +82,22 @@ for num_processes in [1, 2, 5, 10]:
   P.join()
   diff = time.clock() - start_time
   print ' > time to compute coeffs:',diff
+  Ds.append(diff)
 
   coeffs = list(itertools.chain(*coeffs)) # flatten coeffs
   print ' > dimensions of flattened coeffs:',len(coeffs),len(coeffs[0]),len(coeffs[0][0])
 
+
+figure(1)
+axhline(y = comp)
+semilogy(proc_nums, Ds)
+xlabel('Number of processes', fontsize=24)
+ylabel('Runtime (s)', fontsize=24)
+title('Number of samples: ' + str(num_samples), fontsize=24)
+
+show()
+
+"""
 print
 print 'Coalescing Results'
 # TODO: replace queue with ball tree
@@ -88,3 +106,4 @@ for [xcoeffs, ycoeffs] in coeffs:
   Q.put(str(xcoeffs))
   D[str(xcoeffs)] = str(ycoeffs)
 print 'Final number of items in data structure:',Q.qsize()
+"""
