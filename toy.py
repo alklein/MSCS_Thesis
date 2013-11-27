@@ -262,7 +262,7 @@ class Estimator:
     cv_sample is a list of "holdout" instances for cross-validation;
     each instance is a tuple of the form [in, out]_i.
     """
-    def __init__(self, training_sample, cv_sample, num_terms = 20, dist_fn = L2_distance, kernel = triangle_kernel, nonparametric_estimation = fourier_coeffs, bandwidths = [.15, .25]): # bandwidths = [.15, .25, .5, .75, 1., 1.25, 1.5]): TEMP!!!!
+    def __init__(self, training_sample, cv_sample, num_terms = 20, dist_fn = L2_distance, kernel = triangle_kernel, nonparametric_estimation = fourier_coeffs, bandwidths = [.15, .25]): # bandwidths = [.15, .25, .5, .75, 1., 1.25, 1.5]): TEMP!!!! # NOTE: bandwidths should be tried in increasing order.
 
         self.num_terms = num_terms
         self.dist_fn = dist_fn
@@ -315,6 +315,10 @@ class Estimator:
 
         print ' >>> >>> [debug] Bandwidth selected:', self.bandwidths[np.argmin(b_errs)]
         self.best_b = self.bandwidths[np.argmin(b_errs)]
+        if (self.best_b == self.bandwidths[0]):
+            print ' >>> >>> [debug] WARNING: minimum bandwidth selected. Consider trying smaller bandwidths.'
+        if (self.best_b == self.bandwidths[-1]):
+            print ' >>> >>> [debug] WARNING: maximum bandwidth selected. Consider trying larger bandwidths.'
 
     """
     given coeffs fit to some input sample_0, estimates the expected output distribution.
@@ -545,7 +549,7 @@ def test():
 
 def demo(num_plots = 1):
 
-    M, eta = 100, 100
+    M, eta = 2500, 2500
 
     print
     print ' > [debug] Making new toyData object...'
@@ -614,7 +618,7 @@ def demo(num_plots = 1):
         
 #    show()
 
-    ks = [1, 10, 100]
+    ks = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     avg_errs = [np.average(test_errs(E, test_data, parallel=True, KNN=True, k=ks[i])) for i in range(len(ks))]
     avg_errs.append(np.average(test_errs(E, test_data, parallel=True, KNN=False)))
 
@@ -622,6 +626,14 @@ def demo(num_plots = 1):
     for i in range(len(ks)):
         print ' > [debug] Average test error, k =',ks[i],':', avg_errs[i]
     print ' > [debug] Average test error, k = all:', avg_errs[-1]
+
+    figure(2)
+    plot(ks, avg_errs[:-1])
+    axhline(y = avg_errs[-1])
+    xlabel('K', fontsize=24)
+    ylabel('Avg. L2 Error', fontsize=24)
+    title('M, eta = ' + str(eta), fontsize=30)
+    show()
 
 
 """
