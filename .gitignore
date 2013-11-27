@@ -1,1 +1,11 @@
+parser
 data.txt
+xv_2lpt.z=00.0000_sim1
+xv_2lpt.z=00.0000_sim2
+xv_dm.z=00.0000_sim1
+xv_dm.z=00.0000_sim2
+sim1_exact.txt
+sim2_exact.txt
+sim1_approx.txt
+sim2_approx.txt
+*~
