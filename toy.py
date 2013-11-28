@@ -488,8 +488,39 @@ class toyData:
         print
 
 
-def test():    
+"""
+Tests related to the optimal number of terms, T,
+to retain in the nonparametric estimator.
+"""
+def T_test():
+    xs = np.array(range(100))/100.    
+    dist = p_dist(.3, .6, .05, .07)
+    cutoffs = {100: 10, 1000: 15, 10000: 20, 100000: 25}
 
+    for num_samples in [100, 1000, 10000, 100000]:
+        sample = rejection_sample(0, 1, dist.eval, num_samples)
+        figure(num_samples)
+        hist(sample, bins=100, normed=True, color='0.75')
+        cut = cutoffs[num_samples]
+        for T in range(cut):
+            f_hat = approx_density(sample, num_terms=T)
+            cut = cutoffs[num_samples]
+            plot(xs, map(f_hat, xs), linewidth=1, color='b')
+        for T in range(cut, 40):
+            f_hat = approx_density(sample, num_terms=T)
+            cut = cutoffs[num_samples]
+            plot(xs, map(f_hat, xs), linewidth=1, color='r')
+        T = cut
+        f_hat = approx_density(sample, num_terms=T)
+        cut = cutoffs[num_samples]
+        plot(xs, map(f_hat, xs), linewidth=4, color='k', linestyle='--')
+
+    show()
+
+"""
+Tests brute-force toy data creation vs. loading data from files.
+"""
+def load_speed_test():
     brute_times = []
     load_times = []
     Ms = [100, 500, 1000, 1500, 2000, 5000] #, 10000]
@@ -545,6 +576,11 @@ def test():
 
     print 'brute:',brute_times
     print 'load:',load_times
+
+def test():    
+
+    T_test()
+    # load_speed_test()
     exit(0)
 
 def demo(num_plots = 1):
@@ -641,11 +677,9 @@ Runs built-in tests and a demo.
 """
 if __name__ == '__main__':
 
-    """
     print
     print ' > RUNNING BUILT-IN TESTS'
     test()
-    """
 
     print
     print ' > RUNNING DEMO'
