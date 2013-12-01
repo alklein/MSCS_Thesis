@@ -1,10 +1,10 @@
 /*
 
-File: parse_particles.cpp
+File: alt_parser.cpp
 Brief: Script to extract particles from binary simulation output file
 Author: Andrea Klein       <alklein@alumni.stanford.edu>
 
-Usage: g++ parse_particles.cpp -o parser
+Example Usage: g++ alt_parser.cpp -o parser
        ./parser > particles.txt
 Note: the infile must be in the same directory.
 
@@ -16,9 +16,11 @@ Note: the infile must be in the same directory.
 
 using namespace std;
 
-// Np = number of particles assigned to halos.
-// Total number of particles is ~ 1 billion?
-int Np = 10000000;
+// Change infile here
+std::string simfile = "sims/xv_2lpt.z=00.0000_sim1";
+
+// Total number of particles Np is 2^30 // 
+int Np = 1073741824;
 
 struct _particle
 {
@@ -28,8 +30,7 @@ struct _particle
   float vx, vy, vz;
 };
 
-int readsim(string fname, _particle *pp)
-{
+int readsim(string fname, _particle *pp) {
 
   ifstream infile;
   infile.open(fname.c_str(), ios::binary|ios::in);
@@ -38,6 +39,7 @@ int readsim(string fname, _particle *pp)
 
   for(int i=0; i<Np; i++)
     {
+      // read in current particle
       infile.read( (char *)&pp[i].ip, 8 );
       infile.read( (char *)&pp[i].ih, 8 );
       infile.read( (char *)&pp[i].x, sizeof(float) );
@@ -46,22 +48,19 @@ int readsim(string fname, _particle *pp)
       infile.read( (char *)&pp[i].vx, sizeof(float) );
       infile.read( (char *)&pp[i].vy, sizeof(float) );
       infile.read( (char *)&pp[i].vz, sizeof(float) );
+
+      // immediately print out contents of current particle
+      cout << pp[i].ip << ' ' 
+	   << pp[i].ih << ' '
+	   << pp[i].x  << ' ' << pp[i].y << ' ' << pp[i].z << ' '
+	   << pp[i].vx << ' ' << pp[i].vy << ' ' << pp[i].vz << endl;
     }
 
   return 0;
 }
 
-int main()
-{
+int main() {
   _particle *pp = new _particle[Np];
-  readsim("sims/xv_dm.z=00.0000_sim1", pp); // change infile here
-
-  for (int i=0; i<Np; i++) {
-    cout << pp[i].ip << ' ' 
-         << pp[i].ih << ' '
-         << pp[i].x  << ' ' << pp[i].y << ' ' << pp[i].z << ' '
-         << pp[i].vx << ' ' << pp[i].vy << ' ' << pp[i].vz << endl;
-  }
-
+  readsim(simfile, pp); 
   return 0;
 }
