@@ -26,15 +26,15 @@ import manage_files as manager
 
 """
 Indices for basis functions in 6D.
-There will be num_terms^6 index vectors.
+There will be degree^6 index vectors.
 """
-def alphas(num_terms):
-    return [[a,b,c,d,e,f] for a in range(num_terms) 
-            for b in range(num_terms)
-            for c in range(num_terms)
-            for d in range(num_terms)
-            for e in range(num_terms)
-            for f in range(num_terms)]
+def alphas(degree):
+    return [[a,b,c,d,e,f] for a in range(degree) 
+            for b in range(degree)
+            for c in range(degree)
+            for d in range(degree)
+            for e in range(degree)
+            for f in range(degree)]
 
 """
 6D basis function corresponding to a given index vector (alpha).
@@ -52,12 +52,12 @@ def cosine_basis_6D(alpha):
     return phi_alpha
 
 """
-List of all fourier coefficients corresponding to a given sample
-fit to num_terms. Coefficients are listed in the same order as
-defined by alphas().
+List of all degree^6 fourier coefficients corresponding to a given 
+sample fit to num_terms. Coefficients are listed in the same order 
+as defined by alphas().
 """
-def fourier_coeffs_6D(sample, num_terms):
-    indices = alphas(num_terms)
+def fourier_coeffs_6D(sample, degree):
+    indices = alphas(degree)
     result = []
     for alpha in indices:
         phi_alpha = cosine_basis_6D(alpha)
@@ -65,11 +65,19 @@ def fourier_coeffs_6D(sample, num_terms):
         result.append(coeff)
     return result
 
+def coeff_tests():
+    mini_data = manager.load_floats('sims/sim1_exact_10.txt')
+    for deg in range(1, 4):
+        coeffs = fourier_coeffs_6D(mini_data, deg)
+        print 'degree:',deg,'  num coeffs:',len(coeffs)
+
+def tests():
+
+    coeff_tests()
 
 def demo():
-    mini_data = manager.load_floats('sims/sim1_exact_10.txt')
-    coeffs = fourier_coeffs_6D(mini_data, 3)
-    print coeffs
+    pass
+
 
 """
 Runs demo.
@@ -77,6 +85,9 @@ Runs demo.
 if __name__ == '__main__':
 
     print
+    print ' > RUNNING TESTS'
+    tests()
+
+    print
     print ' > RUNNING DEMO'
     demo()
-
