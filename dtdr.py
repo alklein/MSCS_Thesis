@@ -16,6 +16,7 @@ import math
 import itertools
 import numpy as np
 
+from pylab import *
 from random import *
 from multiprocessing import Pool
 
@@ -66,14 +67,36 @@ def fourier_coeffs_6D(sample, degree):
     return result
 
 def coeff_tests():
-    mini_data = manager.load_floats('sims/sim1_exact_10.txt')
-    for deg in range(1, 4):
+    mini_data = manager.load_floats('sims/sim1_approx_1000.txt')[:100]
+    degrees = range(6)
+    times = []
+    for deg in degrees:
+        start = time.clock()
         coeffs = fourier_coeffs_6D(mini_data, deg)
+        times.append(time.clock() - start)
         print 'degree:',deg,'  num coeffs:',len(coeffs)
+
+    figure(0)
+    plot(degrees, times, '-')
+    xlabel('Degree', fontsize=24)
+    ylabel('Time to Compute Coefficients (s)', fontsize=24)
+
+    figure(1)
+    semilogy(degrees, times, '-')
+    xlabel('Degree', fontsize=24)
+    ylabel('Time to Compute Coefficients (s)', fontsize=24)
+
+    show()
+
+# TODO: implement once binning can isolate actual contiguous
+# regions of simulation
+def T_tests():
+    pass
 
 def tests():
 
     coeff_tests()
+    T_tests()
 
 def demo():
     pass
