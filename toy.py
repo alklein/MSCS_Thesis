@@ -585,7 +585,7 @@ def test():
 
 def demo(num_plots = 1):
 
-    M, eta = 2500, 2500
+    M, eta = 1000, 1000
 
     print
     print ' > [debug] Making new toyData object...'
@@ -647,7 +647,7 @@ def demo(num_plots = 1):
         hist(Y0_sample, bins=100, normed=True, color='r')
         plot(xs, map(Y0, xs), linewidth=2, color='b')
         plot(xs, map(Y0_hat, xs), linewidth=2, color='k')
-        title('OUTPUT. M: ' + str(M) + ' eta: ' + str(eta))
+#        title('OUTPUT. M: ' + str(M) + ' eta: ' + str(eta))
         axes = gca()
         axes.set_xlim(0, 1)
         axes.set_ylim(-1, 6)
@@ -667,8 +667,8 @@ def demo(num_plots = 1):
     plot(ks, avg_errs[:-1])
     axhline(y = avg_errs[-1])
     xlabel('K', fontsize=24)
-    ylabel('Avg. L2 Error', fontsize=24)
-    title('M, eta = ' + str(eta), fontsize=30)
+    ylabel('Avgerage L2 Error', fontsize=24)
+ #   title('M, eta = ' + str(eta), fontsize=30)
     show()
 
 
@@ -677,9 +677,9 @@ Runs built-in tests and a demo.
 """
 if __name__ == '__main__':
 
-    print
-    print ' > RUNNING BUILT-IN TESTS'
-    test()
+#    print
+#    print ' > RUNNING BUILT-IN TESTS'
+#    test()
 
     print
     print ' > RUNNING DEMO'
