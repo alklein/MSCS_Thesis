@@ -20,6 +20,12 @@ from random import *
 def load(filename):
     return np.array([line.split() for line in open(filename)])
 
+def load_floats(filename):
+    result = []
+    for line in open(filename):
+        result.append([float(val) for val in line.split()])
+    return result
+
 def length(filename):
     i = 0
     for line in open(filename):
@@ -82,5 +88,6 @@ def make_mini_files():
 
 
 if __name__ == '__main__':
-    make_mini_files()
+    print 'length of sim1_exact.txt:', length('sims/sim1_exact.txt')
+    #make_mini_files()
 
