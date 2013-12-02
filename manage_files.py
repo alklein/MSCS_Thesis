@@ -24,7 +24,32 @@ def load_floats(filename):
     result = []
     for line in open(filename):
         result.append([float(val) for val in line.split()])
-    return result
+    return np.array(result)
+
+# data should be list of 6D samples,
+# where each sample is of the form
+# [x, y, z, vx, vy, vz]
+def emp_bounds(data): 
+    xs, ys, zs = data[:,0], data[:,1], data[:,2]
+    vxs, vys, vzs = data[:,3], data[:,4], data[:,5]
+    min_pos = min([min(xs), min(ys), min(zs)])
+    max_pos = max([max(xs), max(ys), max(zs)])
+    min_vel = min([min(vxs), min(vys), min(vzs)])
+    max_vel = max([max(vxs), max(vys), max(vzs)])
+    return [min_pos, max_pos, min_vel, max_vel]
+
+def load_floats_scaled(filename, [xmin, xmax, vmin, vmax]):
+
+    def sc_pos(x):
+        return float(x) * (xmax - xmin) - xmin
+
+    def sc_vel(v):
+        return float(v) * (vmax - vmin) - vmin
+    result = []
+    for line in open(filename):
+        [x, y, z, vx, vy, vz] = line.split()
+        result.append([sc_pos(x), sc_pos(y), sc_pos(z), sc_vel(vx), sc_vel(vy), sc_vel(vz)])
+    return np.array(result)
 
 def length(filename):
     i = 0

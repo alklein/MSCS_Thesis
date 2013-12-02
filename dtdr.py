@@ -94,13 +94,15 @@ def T_tests():
     pass
 
 def tests():
-
     coeff_tests()
     T_tests()
 
 def demo():
-    pass
-
+    mini_data = manager.load_floats('sims/sim1_approx_1000.txt')[:100]
+    print 'min x:',min(mini_data[:,0])
+    print 'max x:',max(mini_data[:,0])
+    print 'min vx:',min(mini_data[:,3])
+    print 'max vx:',max(mini_data[:,3])
 
 """
 Runs demo.
@@ -109,7 +111,7 @@ if __name__ == '__main__':
 
     print
     print ' > RUNNING TESTS'
-    tests()
+    #tests()
 
     print
     print ' > RUNNING DEMO'
