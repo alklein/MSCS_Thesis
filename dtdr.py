@@ -95,6 +95,12 @@ def demo():
 =======
     show()
 
+def demo():
+
+    data = [[1, 2], [1, 3], [4, 5]]
+    B = neighbors.BallTree(data)
+    show()
+
 # TODO: implement once binning can isolate actual contiguous
 # regions of simulation
 def T_tests():
