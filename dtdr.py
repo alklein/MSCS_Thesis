@@ -17,6 +17,7 @@ import itertools
 import numpy as np
 
 from random import *
+from sklearn import *
 from multiprocessing import Pool
 
 """ Custom Imports """
@@ -76,7 +77,9 @@ def tests():
     coeff_tests()
 
 def demo():
-    pass
+
+    data = [[1, 2], [1, 3], [4, 5]]
+    B = neighbors.BallTree(data)
 
 
 """
