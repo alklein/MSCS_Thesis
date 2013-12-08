@@ -18,6 +18,7 @@ import numpy as np
 
 from pylab import *
 from random import *
+from sklearn import *
 from multiprocessing import Pool
 
 """ Custom Imports """
@@ -86,6 +87,12 @@ def coeff_tests():
     xlabel('Degree', fontsize=24)
     ylabel('Time to Compute Coefficients (s)', fontsize=24)
 
+    show()
+
+def demo():
+
+    data = [[1, 2], [1, 3], [4, 5]]
+    B = neighbors.BallTree(data)
     show()
 
 # TODO: implement once binning can isolate actual contiguous
