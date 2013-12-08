@@ -38,6 +38,8 @@ def emp_bounds(data):
     max_vel = max([max(vxs), max(vys), max(vzs)])
     return [min_pos, max_pos, min_vel, max_vel]
 
+# TODO: implement
+"""
 def load_floats_scaled(filename, [xmin, xmax, vmin, vmax]):
 
     def sc_pos(x):
@@ -50,6 +52,7 @@ def load_floats_scaled(filename, [xmin, xmax, vmin, vmax]):
         [x, y, z, vx, vy, vz] = line.split()
         result.append([sc_pos(x), sc_pos(y), sc_pos(z), sc_vel(vx), sc_vel(vy), sc_vel(vz)])
     return np.array(result)
+"""
 
 def length(filename):
     i = 0
