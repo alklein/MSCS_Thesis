@@ -15,7 +15,7 @@ import math
 import itertools
 import numpy as np
 
-#from pylab import *
+from pylab import *
 from random import *
 from sklearn import *
 from multiprocessing import Pool
@@ -104,6 +104,21 @@ def coeffs_to_approx_density(coeffs):
         return sum([coeffs[index]*cosine_basis(index)(x) for index in range(len(coeffs))])
 
     return f_hat
+
+"""
+Unbiased risk associated with fitting sample 
+to the estimator described by coeffs.
+"""
+def J_hat(sample, coeffs):
+    T = len(coeffs)
+    n = len(sample)
+    result = 0
+    for j in range(T): 
+        term = 0
+        for i in range(n):
+            term += (2./n) * ((cosine_basis(j)(sample[i]))**2 - (n + 1)*(coeffs[j])**2)
+        result += term
+    return (1./(n - 1))*result
 
 """
 f1, f2 are nonparametric estimator functions generated via approx_density().
@@ -496,9 +511,10 @@ to retain in the nonparametric estimator.
 def T_test():
     xs = np.array(range(100))/100.    
     dist = p_dist(.3, .6, .05, .07)
-    cutoffs = {100: 10, 1000: 15, 10000: 20, 100000: 25}
+    #cutoffs = {100: 10, 1000: 15, 10000: 20, 100000: 25}    
+    cutoffs = {100: 10, 1000: 15}
 
-    for num_samples in [100, 1000, 10000, 100000]:
+    for num_samples in cutoffs:
         sample = rejection_sample(0, 1, dist.eval, num_samples)
         figure(num_samples)
         hist(sample, bins=100, normed=True, color='0.75')
@@ -515,6 +531,19 @@ def T_test():
         f_hat = approx_density(sample, num_terms=T)
         cut = cutoffs[num_samples]
         plot(xs, map(f_hat, xs), linewidth=4, color='k', linestyle='--')
+
+    # shows how J_hat scales with T for different sample sizes
+    for num_samples in cutoffs:
+        sample = rejection_sample(0, 1, dist.eval, num_samples)
+        figure(2*num_samples)
+        Js = []
+        for T in range(40):
+            cs = fourier_coeffs(sample, num_terms=T)
+            Js.append(J_hat(sample, cs))
+        plot(range(40), Js, '-')        
+        xlabel('T', fontsize=24)
+        ylabel('J', fontsize=24)
+        axvline(x = cutoffs[num_samples])
 
     show()
 
@@ -586,7 +615,7 @@ def test():
 
 def demo(num_plots = 1):
 
-    M, eta = 2500, 2500
+    M, eta = 1000, 1000
 
     print
     print ' > [debug] Making new toyData object...'
@@ -648,7 +677,7 @@ def demo(num_plots = 1):
         hist(Y0_sample, bins=100, normed=True, color='r')
         plot(xs, map(Y0, xs), linewidth=2, color='b')
         plot(xs, map(Y0_hat, xs), linewidth=2, color='k')
-        title('OUTPUT. M: ' + str(M) + ' eta: ' + str(eta))
+#        title('OUTPUT. M: ' + str(M) + ' eta: ' + str(eta))
         axes = gca()
         axes.set_xlim(0, 1)
         axes.set_ylim(-1, 6)
@@ -668,8 +697,8 @@ def demo(num_plots = 1):
     plot(ks, avg_errs[:-1])
     axhline(y = avg_errs[-1])
     xlabel('K', fontsize=24)
-    ylabel('Avg. L2 Error', fontsize=24)
-    title('M, eta = ' + str(eta), fontsize=30)
+    ylabel('Avgerage L2 Error', fontsize=24)
+ #   title('M, eta = ' + str(eta), fontsize=30)
     show()
 
 
