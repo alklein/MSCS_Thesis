@@ -1,7 +1,7 @@
 #!/usr/bin/python2.7
 
 """
-@file dtdr.py
+@file math_helpers.py
 @brief mathematical helper functions for use in distribution-to-distribution regression
 @author Andrea Klein     <alklein@alumni.stanford.edu>
 """

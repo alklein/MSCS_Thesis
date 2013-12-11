@@ -2,7 +2,7 @@
 
 """
 @file manage_files.py
-@brief Tools to manage and manipulate simulations files
+@brief Tools to manage and manipulate simulation files
 @author Andrea Klein     <alklein@alumni.stanford.edu>
 """
 
