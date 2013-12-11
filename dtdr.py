@@ -25,150 +25,9 @@ from multiprocessing import Pool
 import toy
 import manage_files as manager
 
+from math_helpers import *
+from pll_helpers import *
 
-"""
-returns indexed function from the cosine basis.
-"""
-def cosine_basis(index):
-
-    def one(x):
-        return 1
-
-    def phi(x):
-        return (2**.5) * math.cos(math.pi * index * x)
-
-    if (not index): return one
-    else: return phi
-
-"""
-c1, c2 are coefficient vectors. they should have the same length.
-"""
-def L2_distance(c1, c2):
-    return sum([(c1[i] - c2[i])**2 for i in range(len(c1))])
-
-"""
-i.e. Gaussian kernel function;
-defined for x in [0, +inf)
-"""
-def RBF_kernel(x):
-    return math.exp(-(x**2)/2.)
-
-
-"""
-chunk generator for parallel processing
-"""
-def chunks(l, n):
-    for i in xrange(0, len(l), n):
-        yield l[i:i+n]
-   
-"""
-simple partitioning function for parallel processing
-"""         
-def partitioned(data, num_processes):
-    return list(chunks(data, len(data) / num_processes))
-
-
-"""
-partitioning function for parallel error calculation
-"""         
-def multi_partitioned(E, test_Xs, test_Ys, KNN, k, num_processes):
-    partitioned_Xs = partitioned(test_Xs, num_processes)
-    partitioned_Ys = partitioned(test_Ys, num_processes)
-    return [[E, partitioned_Xs[i], partitioned_Ys[i], KNN, k] for i in range(len(partitioned_Xs))]
-
-"""
-Map function for parallel computation of Fourier coeffs
-"""
-def coeff_Map((X, num_terms)):
-    return [fourier_coeffs(x, num_terms) for x in X]
-    #num_terms = packed_args[0][1]
-    #return [fourier_coeffs(packed_args[i][0], num_terms) for i in range(len(packed_args))]
-
-def meta_coeff_Map(num_terms):
-
-    def coeff_Map(X):
-        return [fourier_coeffs(x, num_terms) for x in X]
-
-    return coeff_Map
-        
-
-class coeff_Mapper():
-
-    def __init__(self, num_terms):
-        self.num_terms = num_terms
-
-    def coeff_Map(X):
-        return [fourier_coeffs(x, num_terms) for x in X]
-
-"""
-Map function for parallel computation of test errors
-"""
-def err_Map(X):
-    (E, test_Xs, test_Ys, KNN, k) = X
-    test_X_hats = [E.nonparametric_estimation(sample, E.num_terms) for sample in test_Xs]
-    test_Y_hats = [E.nonparametric_estimation(sample, E.num_terms) for sample in test_Ys]
-    errs = []
-    for i in range(len(test_X_hats)):
-        if (KNN): est_Y_hat = E.KNN_regress(test_X_hats[i], k=k)
-        else: est_Y_hat = E.regress(test_X_hats[i])
-        err = E.dist_fn(test_Y_hats[i], est_Y_hat)
-        errs.append(err)
-    return errs
-
-"""
-Indices for basis functions in 6D.
-There will be degree^6 index vectors.
-"""
-def alphas(degree):
-    return [[a,b,c,d,e,f] for a in range(degree) 
-            for b in range(degree)
-            for c in range(degree)
-            for d in range(degree)
-            for e in range(degree)
-            for f in range(degree)]
-
-"""
-6D basis function corresponding to a given index vector (alpha).
-"""
-def cosine_basis_6D(alpha):
-    
-    # x should be a 6D vector of the form [a, b, c, d, e, f]
-    def phi_alpha(x):
-        result = 1
-        for i in range(6):
-            phi_i = toy.cosine_basis(alpha[i])
-            result *= phi_i(x[i])
-        return result
-
-    return phi_alpha
-
-"""
-List representation of 1D fourier coefficients corresponding to nonparametric 
-estimation of the distribution from which sample was drawn.
-
-used to compute L2 distance.
-"""
-def fourier_coeffs(sample, num_terms):
-    result = []
-    for index in range(num_terms):
-        phi = cosine_basis(index)
-        coeff = sum([phi(s) for s in sample])/(1.*len(sample))
-        result.append(coeff)
-    return result
-
-"""
-List of all degree^6 fourier coefficients corresponding to a given 
-sample fit to num_terms. Coefficients are listed in the same order 
-as defined by alphas().
-"""
-def fourier_coeffs_6D(sample, degree):
-    indices = alphas(degree)
-    result = []
-    for alpha in indices:
-        phi_alpha = cosine_basis_6D(alpha)
-        coeff = np.average([phi_alpha(s) for s in sample])
-        result.append(coeff)
-    return result
 
 class Estimator:
 
@@ -313,9 +172,9 @@ def KNN_tests():
     print ' >>> STARTING KNN TESTS <<<'
     print
 
-    M, eta = 100, 100 # TEMP
-    K = 10
-    Ts = [1, 2, 3, 4, 5]
+    M, eta = 200, 200
+    K = 5
+    Ts = range(1, 21)
 
     print ' >>> Making',M,'samples...'
     tD = toy.toyData(M = M, eta = eta)
@@ -331,6 +190,10 @@ def KNN_tests():
     print ' >>> Number of cv instances:', len(cv_data)
     print ' >>> Number of test instances:', len(test_data)
 
+    ball_build_times = []
+    KNN_regress_times = []
+    full_regress_times = []
+
     for T in Ts:
 
         print
@@ -344,7 +207,8 @@ def KNN_tests():
         print ' >>> Building ball tree... '
         start = time.clock()
         E.build_ball_tree()
-        print ' >>> Build time:', time.clock() - start
+        ball_build_times.append(time.clock() - start)
+        print ' >>> Build time:', ball_build_times[-1]
         
         print ' >>> Performing KNN regression...'
         start = time.clock()
@@ -353,7 +217,8 @@ def KNN_tests():
             X0_coeffs = fourier_coeffs(X0_sample, num_terms=T)
             'number of test coeffs:',len(X0_coeffs)
             Y0_coeffs = E.KNN_regress(X0_coeffs, k=K)
-        print ' >>> KNN regression time:', time.clock() - start
+        KNN_regress_times.append(time.clock() - start)
+        print ' >>> KNN regression time:', KNN_regress_times[-1]
 
         print ' >>> Performing full regression...'
         start = time.clock()
@@ -361,7 +226,15 @@ def KNN_tests():
             X0_sample, Y0_sample = test_data[i][0], test_data[i][1]
             X0_coeffs = fourier_coeffs(X0_sample, num_terms=T)
             Y0_coeffs = E.full_regress(X0_coeffs)
-        print ' >>> Full regression time:', time.clock() - start
+        full_regress_times.append(time.clock() - start)
+        print ' >>> Full regression time:', full_regress_times[-1]
+
+    print
+    print ' >>> Experiments complete.'
+    print ' >>> Ball build times:', ball_build_times
+    print ' >>> KNN regress times:', KNN_regress_times
+    print ' >>> Full regress times:', full_regress_times
+
 
 def coeff_tests():
     mini_data = manager.load_floats('sims/sim1_approx_1000.txt')[:100]

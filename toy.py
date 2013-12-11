@@ -370,7 +370,7 @@ class Estimator:
         k_sum = sum([self.kernel(d) for d in normed_distances])        
         weights = [self.kernel(normed_distances[i]) / k_sum for i in range(len(sorted_Xs))]
 
-        a = np.matrix.transpose(np.array(sorted_Xs))
+        a = np.matrix.transpose(np.array(sorted_Ys))
         b = np.array([[w] for w in weights])
         Y0_coeffs = np.dot(a, b)
             
