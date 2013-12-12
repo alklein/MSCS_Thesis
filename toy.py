@@ -292,7 +292,9 @@ class Estimator:
         self.cv_Xs = cv_sample[:,0]
         self.cv_Ys = cv_sample[:,1]
 
-    def train(self, parallel=False, num_processes=5):
+    def train(self, parallel=False, num_processes=5, verbose=False):
+
+        start = time.clock()
 
         # fit training and cv data via nonparametric density estimation
         if (not parallel):            
@@ -304,7 +306,7 @@ class Estimator:
             self.cv_Y_hats = [self.nonparametric_estimation(sample, self.num_terms) for sample in self.cv_Ys]
         else:
             P = Pool(processes=num_processes,)
-            print ' >>> [debug] Fitting training data in parallel with',num_processes,'processes... '
+            print ' >>> [debug] Fitting training data in parallel with',num_processes,'process(es)... '
             coeffs = P.map(coeff_Map, partitioned(self.Xs, num_processes))
             self.X_hats = list(itertools.chain(*coeffs))
             coeffs = P.map(coeff_Map, partitioned(self.Ys, num_processes))
@@ -314,6 +316,19 @@ class Estimator:
             self.cv_X_hats = list(itertools.chain(*coeffs))
             coeffs = P.map(coeff_Map, partitioned(self.cv_Ys, num_processes))
             self.cv_Y_hats = list(itertools.chain(*coeffs))
+
+        if verbose: 
+            if parallel: 
+                print ' >>> [debug] Time to fit coefficients in parallel with',num_processes,'process(es):',time.clock() - start
+            else:
+                print ' >>> [debug] Time to fit coefficients sequentially:',time.clock()
+
+        if verbose:
+            print 'length of fit training data:',len(self.X_hats),'cv data:',len(self.cv_X_hats)
+
+        # TEMP AS FUCK
+        print 'TEMP: EXITING COMPUTATION'
+        exit(0)
 
         # cross-validate bandwidths
         print ' >>> [debug] cross-validating bandwidths...'
@@ -607,10 +622,36 @@ def load_speed_test():
     print 'brute:',brute_times
     print 'load:',load_times
 
+"""
+Tests time to fit coefficients sequentially vs. in parallel.
+"""
+def pll_test():
+
+    M, eta = 500, 500
+
+    print
+    print ' > [debug] Making new toyData object with M, eta =',M,'...'
+    tD = toyData(M = M, eta = eta)
+    tD.make_samples()
+
+    all_data = tD.all_samples
+    train_data = tD.train_samples
+    cv_data = tD.cv_samples
+    test_data = tD.test_samples
+
+    print
+    print ' > [debug] Training estimator... '
+    E = Estimator(train_data, cv_data, dist_fn = L2_distance, kernel = RBF_kernel)
+    E.train(parallel=False, verbose=True)    
+    for n in range(2, 10):
+        print
+        E.train(parallel=True, num_processes=n, verbose=True)
+
 def test():    
 
-    T_test()
+    #T_test()
     # load_speed_test()
+    pll_test()
     exit(0)
 
 def demo(num_plots = 1):
