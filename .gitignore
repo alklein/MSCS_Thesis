@@ -8,6 +8,9 @@ sim1_exact.txt
 sim2_exact.txt
 sim1_approx.txt
 sim2_approx.txt
+sims/*
+scikit*
 *~
 *.pdf
 *.png
+*.pyc

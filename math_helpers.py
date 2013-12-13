@@ -46,6 +46,13 @@ def RBF_kernel(x):
     return math.exp(-(x**2)/2.)
 
 """
+defined for vector x
+"""
+def RBF_kernel(x):
+    sm = sum([x[i]**2 for i in range(len(x))])
+    return math.exp(-(sm**2)/2.)
+
+"""
 Indices for basis functions in 6D.
 There will be degree^6 index vectors.
 """
@@ -57,6 +64,26 @@ def alphas(degree):
             for e in range(degree)
             for f in range(degree)]
 
+def alphas_2D(degree):
+    return [[a,b] for a in range(degree)
+            for b in range(degree)]
+
+def alphas_ND(dim):
+    if (dim == 2): return alphas_2D
+    elif (dim == 6): return alphas
+    else: return None
+
+def cosine_basis_ND(alpha, dim):
+
+    def phi_alpha(x):
+        result = 1
+        for i in range(dim):
+            phi_i = cosine_basis(alpha[i])
+            result *= phi_i(x[i])
+        return result
+
+    return phi_alpha
+
 """
 6D basis function corresponding to a given index vector (alpha).
 """
@@ -66,7 +93,7 @@ def cosine_basis_6D(alpha):
     def phi_alpha(x):
         result = 1
         for i in range(6):
-            phi_i = toy.cosine_basis(alpha[i])
+            phi_i = cosine_basis(alpha[i])
             result *= phi_i(x[i])
         return result
 
@@ -96,6 +123,24 @@ def fourier_coeffs_6D(sample, degree):
     result = []
     for alpha in indices:
         phi_alpha = cosine_basis_6D(alpha)
+        coeff = np.average([phi_alpha(s) for s in sample])
+        result.append(coeff)
+    return result
+
+"""
+List of all degree^N fourier coefficients corresponding to a given 
+sample fit to num_terms. Coefficients are listed in the same order 
+as defined by alphas().
+"""
+def fourier_coeffs_ND(sample, degree, dim):
+    indices = alphas_ND(dim)(degree)
+    print ' ~~~ len of sample:',len(sample)
+    print ' ~~~ sample:',sample
+    print ' ~~~ indices:', indices 
+    result = []
+    for alpha in indices:
+        phi_alpha = cosine_basis_ND(alpha, degree)
+        #for s in sample: print ' ~~~ s:',s
         coeff = np.average([phi_alpha(s) for s in sample])
         result.append(coeff)
     return result

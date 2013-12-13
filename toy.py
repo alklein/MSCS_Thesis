@@ -20,6 +20,8 @@ from random import *
 from sklearn import *
 from multiprocessing import Pool
 
+from pll_helpers import *
+
 """
 convenience function to plot distributions.
 """
@@ -270,7 +272,6 @@ class q_dist:
     def eval(self, x):
         return .5 * (self.g1.eval(x) + self.g2.eval(x))
 
-
 class Estimator:
 
     """
@@ -327,8 +328,8 @@ class Estimator:
             print 'length of fit training data:',len(self.X_hats),'cv data:',len(self.cv_X_hats)
 
         # TEMP AS FUCK
-        print 'TEMP: EXITING COMPUTATION'
-        exit(0)
+        #print 'TEMP: EXITING COMPUTATION'
+        #exit(0)
 
         # cross-validate bandwidths
         print ' >>> [debug] cross-validating bandwidths...'
@@ -750,7 +751,7 @@ if __name__ == '__main__':
 
     print
     print ' > RUNNING BUILT-IN TESTS'
-    test()
+    #test()
 
     print
     print ' > RUNNING DEMO'

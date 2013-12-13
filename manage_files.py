@@ -17,7 +17,7 @@ import numpy as np
 
 from random import *
 
-def load(filename):
+def raw_load(filename):
     return np.array([line.split() for line in open(filename)])
 
 def load_floats(filename):
@@ -26,10 +26,28 @@ def load_floats(filename):
         result.append([float(val) for val in line.split()])
     return np.array(result)
 
+def load_partial(filename, num, dim, binsz):
+    result = []
+    cur_sample = []
+    count = 1
+    bincount = 1
+    for line in open(filename):
+        row = [float(val) for val in line.split()]
+        cur_sample.append(row[:dim])
+        if (bincount == binsz):
+            result.append(cur_sample)
+            cur_sample = []
+            bincount = 1
+        else:
+            bincount += 1
+        if (count == num): return np.array(result)
+        count += 1
+    return np.array(result)
+
 # data should be list of 6D samples,
 # where each sample is of the form
 # [x, y, z, vx, vy, vz]
-def emp_bounds(data): 
+def emp_bounds_6D(data): 
     xs, ys, zs = data[:,0], data[:,1], data[:,2]
     vxs, vys, vzs = data[:,3], data[:,4], data[:,5]
     min_pos = min([min(xs), min(ys), min(zs)])
@@ -37,6 +55,30 @@ def emp_bounds(data):
     min_vel = min([min(vxs), min(vys), min(vzs)])
     max_vel = max([max(vxs), max(vys), max(vzs)])
     return [min_pos, max_pos, min_vel, max_vel]
+
+
+def col_min_max(data, col):
+    data_col = []
+    for sample in data:
+        for row in sample:
+            val = row[col]
+            data_col.append(val)
+
+    mn, mx = min(data_col), max(data_col)
+    return (mn, mx)
+
+def scale_col_emp(data, col):
+    (mn, mx) = col_min_max(data, col)
+
+    for i in range(len(data)):
+        sample = data[i]
+        for j in range(len(sample)):
+            row = sample[j]
+            val = row[col]
+            scaled_val = (val - mn) / (mx - mn)
+            data[i][j][col] = scaled_val
+
+    return data
 
 # TODO: implement
 """
@@ -53,6 +95,16 @@ def load_floats_scaled(filename, [xmin, xmax, vmin, vmax]):
         result.append([sc_pos(x), sc_pos(y), sc_pos(z), sc_vel(vx), sc_vel(vy), sc_vel(vz)])
     return np.array(result)
 """
+
+"""
+Partitions data according to specified holdout fraction.
+"""
+def partition_data(data, holdout_frac=.1):
+    holdout_sz = int(holdout_frac * len(data))
+    cv_samples = data[:holdout_sz]
+    test_samples = data[holdout_sz : 2*holdout_sz]
+    train_samples = data[2*holdout_sz : ]
+    return [train_samples, cv_samples, test_samples]
 
 def length(filename):
     i = 0

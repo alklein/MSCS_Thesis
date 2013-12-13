@@ -29,14 +29,15 @@ from math_helpers import *
 from pll_helpers import *
 
 
-class Estimator:
+class ONE_D_Estimator:
 
     """
     training_sample is a list of training instances;
     cv_sample is a list of "holdout" instances for cross-validation;
     each instance is a tuple of the form [in, out]_i.
     """
-    def __init__(self, training_sample, cv_sample, num_terms = 20, dist_fn = L2_distance, kernel = RBF_kernel, nonparametric_estimation = fourier_coeffs, bandwidths = [.15, .25]): # bandwidths = [.15, .25, .5, .75, 1., 1.25, 1.5]): TEMP!!!! # NOTE: bandwidths should be tried in increasing order.
+    # bandwidths = [.15, .25, .5, .75, 1., 1.25, 1.5]): TEMP!!!! # NOTE: bandwidths should be tried in increasing order.
+    def __init__(self, training_sample, cv_sample, num_terms = 20, dist_fn = L2_distance, kernel = RBF_kernel, nonparametric_estimation = fourier_coeffs, bandwidths = [.15, .25]): 
 
         self.num_terms = num_terms
         self.dist_fn = dist_fn
@@ -67,24 +68,16 @@ class Estimator:
             print ' >>> [debug] Fitting training data in parallel with',num_processes,'processes... '
             M = meta_coeff_Map(self.num_terms)
 
-            #packed_args = [(x, self.num_terms) for x in partitioned(self.Xs, num_processes)]
-            #packed_args = (partitioned(self.Xs, num_processes), self.num_terms)
             coeffs = P.map(M, partitioned(self.Xs, num_processes))
             self.X_hats = list(itertools.chain(*coeffs))
 
-            #packed_args = [(x, self.num_terms) for x in partitioned(self.Ys, num_processes)]
-            #packed_args = (partitioned(self.Ys, num_processes), self.num_terms)
             coeffs = P.map(M, partitioned(self.Ys, num_processes))
             self.Y_hats = list(itertools.chain(*coeffs))
 
             print ' >>> [debug] Fitting cv data in parallel with',num_processes,'processes... '
-            #packed_args = [(x, self.num_terms) for x in partitioned(self.cv_Xs, num_processes)]
-            #packed_args = (partitioned(self.cv_Xs, num_processes), self.num_terms)
             coeffs = P.map(M, partitioned(self.cv_Xs, num_processes))
             self.cv_X_hats = list(itertools.chain(*coeffs))
 
-            #packed_args = [(x, self.num_terms) for x in partitioned(self.cv_Ys, num_processes)]
-            #packed_args = (partitioned(self.cv_Ys, num_processes), self.num_terms)
             coeffs = P.map(M, partitioned(self.cv_Ys, num_processes))
             self.cv_Y_hats = list(itertools.chain(*coeffs))
 
@@ -151,14 +144,131 @@ class Estimator:
         weights = [self.kernel(normed_distances[i]) / k_sum for i in range(k)]
         selected_Ys = [self.Y_hats[index] for index in indices]
 
-        """
+        a = np.matrix.transpose(np.array(selected_Ys))
+        b = np.array([[w] for w in weights])
+        Y0_coeffs = np.dot(a, b)
+            
+        return Y0_coeffs
+
+
+class ND_Estimator:
+
+    """
+    training_sample is a list of training instances;
+    cv_sample is a list of "holdout" instances for cross-validation;
+    each instance is a tuple of the form [in, out]_i.
+    """
+    def __init__(self, training_sample, cv_sample, degree = 20, dim = 6, dist_fn = L2_distance, kernel = RBF_kernel, nonparametric_estimation = fourier_coeffs_ND, bandwidths = [.15, .25]): # bandwidths = [.15, .25, .5, .75, 1., 1.25, 1.5]): TEMP!!!! # NOTE: bandwidths should be tried in increasing order.
+
+        self.degree = degree
+        self.dim = dim
+        self.dist_fn = dist_fn
+        self.kernel = kernel        
+        self.nonparametric_estimation = nonparametric_estimation 
+        self.bandwidths = bandwidths
+        self.best_b = None
+
+        self.Xs = training_sample[:,0]
+        self.Ys = training_sample[:,1]
+        self.cv_Xs = cv_sample[:,0]
+        self.cv_Ys = cv_sample[:,1]
+
+        # TEMP
+        print 'len Xs:', len(self.Xs)
+        print 'len Xs[0]:', len(self.Xs[0])
+
+        self.ball_tree = None
+
+    def train(self, parallel=False, num_processes=5):
+
+        # fit training and cv data via nonparametric density estimation
+        if (not parallel):            
+            print ' >>> [debug] Fitting training data sequentially... '
+            self.X_hats = [self.nonparametric_estimation(sample, self.degree, self.dim) for sample in self.Xs]
+            self.Y_hats = [self.nonparametric_estimation(sample, self.degree, self.dim) for sample in self.Ys]
+            print ' >>> [debug] Fitting cv data sequentially... '
+            self.cv_X_hats = [self.nonparametric_estimation(sample, self.degree, self.dim) for sample in self.cv_Xs]
+            self.cv_Y_hats = [self.nonparametric_estimation(sample, self.degree, self.dim) for sample in self.cv_Ys]
+        else:
+            P = Pool(processes=num_processes,)
+            print ' >>> [debug] Fitting training data in parallel with',num_processes,'processes... '
+            M = meta_coeff_Map(self.degree)
+
+            coeffs = P.map(M, partitioned(self.Xs, num_processes))
+            self.X_hats = list(itertools.chain(*coeffs))
+
+            coeffs = P.map(M, partitioned(self.Ys, num_processes))
+            self.Y_hats = list(itertools.chain(*coeffs))
+
+            print ' >>> [debug] Fitting cv data in parallel with',num_processes,'processes... '
+            coeffs = P.map(M, partitioned(self.cv_Xs, num_processes))
+            self.cv_X_hats = list(itertools.chain(*coeffs))
+
+            coeffs = P.map(M, partitioned(self.cv_Ys, num_processes))
+            self.cv_Y_hats = list(itertools.chain(*coeffs))
+
+        # cross-validate bandwidths
+        print ' >>> [debug] cross-validating bandwidths...'
+        b_errs = []
+        for b in self.bandwidths:
+            net_err = 0.
+            for i in range(len(self.cv_Xs)):
+                input_coeffs = self.cv_X_hats[i]
+                target_coeffs = self.cv_Y_hats[i]
+                Y0_coeffs = self.full_regress(input_coeffs, b=b)
+                net_err += L2_distance(target_coeffs, Y0_coeffs)
+            avg_err = net_err / (1.*len(self.cv_Xs))
+            print ' >>> >>> [debug] Average L2 error for bandwidth',b,'-',avg_err 
+            b_errs.append(avg_err)
+
+        print ' >>> >>> [debug] Bandwidth selected:', self.bandwidths[np.argmin(b_errs)]
+        self.best_b = self.bandwidths[np.argmin(b_errs)]
+        if (self.best_b == self.bandwidths[0]):
+            print ' >>> >>> [debug] WARNING: minimum bandwidth selected. Consider trying smaller bandwidths.'
+        if (self.best_b == self.bandwidths[-1]):
+            print ' >>> >>> [debug] WARNING: maximum bandwidth selected. Consider trying larger bandwidths.'    
+
+    """
+    given coeffs fit to some input sample_0, estimates the expected output distribution using all the training data.
+    returns estimator in function form and, if in L2 mode, coefficient form as well.
+    (in L1 mode, the coefficient form is None.)
+    """
+    def full_regress(self, f0, b = None):
+
+        if (not b): b = self.best_b # possibly still None
+
         normed_distances = np.array([self.dist_fn(f0, f) for f in self.X_hats]) / b
-        sorted_Xs = np.array(self.X_hats)[normed_distances.argsort()][:k]
-        sorted_Ys = np.array(self.Y_hats)[normed_distances.argsort()][:k]
-        normed_distances = sorted(normed_distances)[:k]
         k_sum = sum([self.kernel(d) for d in normed_distances])        
-        weights = [self.kernel(normed_distances[i]) / k_sum for i in range(len(sorted_Xs))]
-        """
+        weights = [self.kernel(normed_distances[i]) / k_sum for i in range(len(self.X_hats))]
+
+        a = np.matrix.transpose(np.array(self.Y_hats))
+        b = np.array([[w] for w in weights])
+        Y0_coeffs = np.dot(a, b)
+            
+        return Y0_coeffs
+
+
+    """
+    Constructs ball tree for KNN regression.
+    """
+    def build_ball_tree(self):
+        self.ball_tree = neighbors.BallTree(self.X_hats)
+
+    """
+    like regress(), but only considers K nearest neighbors to f0
+    from the training data.
+    """
+    def KNN_regress(self, f0, b = None, k = 1):
+
+        if (not b): b = self.best_b # possibly still None
+
+        distances, indices = self.ball_tree.query(f0, k=k)
+        distances = distances[0]
+        indices = indices[0]
+        normed_distances = np.array(distances) / b
+        k_sum = sum([self.kernel(d) for d in normed_distances])  
+        weights = [self.kernel(normed_distances[i]) / k_sum for i in range(k)]
+        selected_Ys = [self.Y_hats[index] for index in indices]
 
         a = np.matrix.transpose(np.array(selected_Ys))
         b = np.array([[w] for w in weights])
@@ -167,7 +277,7 @@ class Estimator:
         return Y0_coeffs
 
 
-def KNN_tests():
+def KNN_tests_1D():
 
     print ' >>> STARTING KNN TESTS <<<'
     print
@@ -200,7 +310,7 @@ def KNN_tests():
         print ' >>> T value:',T
         print ' >>> Training estimator... '
         start = time.clock()
-        E = Estimator(train_data, cv_data, num_terms = T, dist_fn = L2_distance, kernel = RBF_kernel)
+        E = ONE_D_Estimator(train_data, cv_data, num_terms = T, dist_fn = L2_distance, kernel = RBF_kernel)
         E.train(parallel=False)
         print ' >>> Train time:', time.clock() - start
 
@@ -235,6 +345,47 @@ def KNN_tests():
     print ' >>> KNN regress times:', KNN_regress_times
     print ' >>> Full regress times:', full_regress_times
 
+def KNN_tests_ND():
+
+    dim = 2
+    T = 3
+    M = 1000
+    eta = M
+    data = manager.load_partial('sim1_exact.txt', M, dim, 10)
+
+    print
+    print 'length of data:', len(data)
+    print 'length of bin:', len(data[0])
+    print 'length of sample within bin:',len(data[0][0])
+
+    """
+    for i in range(len(data[0])):
+        data[:,i] = manager.scale_col(data[:,i])
+    """
+
+    print 
+    print 'before scaling,'
+    print 'min max col 0:', manager.col_min_max(data, 0)
+    print 'min max col 1:', manager.col_min_max(data, 1)
+    data = manager.scale_col_emp(data, 0)
+    data = manager.scale_col_emp(data, 1)
+    print 'after scaling,'
+    print 'min max col 0:', manager.col_min_max(data, 0)
+    print 'min max col 1:', manager.col_min_max(data, 1)
+
+    [train_samples, cv_samples, test_samples] = manager.partition_data(data)
+    print
+    print 'number of train samples:',len(train_samples)
+    print 'number of cv samples:',len(cv_samples)
+    
+    all_train_samples = np.column_stack((train_samples, train_samples))
+    all_cv_samples = np.column_stack((cv_samples, cv_samples))
+    all_test_samples = np.column_stack((test_samples, test_samples))
+
+    start = time.clock()
+    E = ND_Estimator(all_train_samples, all_cv_samples, degree = T, dim = dim)
+    E.train(parallel=False)
+    
 
 def coeff_tests():
     mini_data = manager.load_floats('sims/sim1_approx_1000.txt')[:100]
@@ -262,19 +413,14 @@ def demo():
     B = neighbors.BallTree(data)
     show()
 
-def demo():
-
-    data = [[1, 2], [1, 3], [4, 5]]
-    B = neighbors.BallTree(data)
-    show()
-
 # TODO: implement once binning can isolate actual contiguous
 # regions of simulation
 def T_tests():
     pass
 
 def tests():
-    KNN_tests()
+    #KNN_tests_1D()
+    KNN_tests_ND()
     #coeff_tests()
     #T_tests()
 
