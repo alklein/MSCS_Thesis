@@ -23,6 +23,7 @@ from multiprocessing import Pool
 
 """ Custom Imports """
 import toy
+import constants
 import manage_files as manager
 
 from math_helpers import *
@@ -452,7 +453,31 @@ def coeff_tests():
 
 def bin_tests():
 
-    print manager.global_min_max('sims/sim1_exact.txt', 2, verbose=True)
+    #num_bins = 32768
+    num_bins = 10
+
+    (xmin, xmax) = constants.col_0_min_max
+    (ymin, ymax) = constants.col_1_min_max
+    (zmin, zmax) = constants.col_2_min_max
+
+    binsz_x = (xmax - xmin)/num_bins
+    binsz_y = (ymax - ymin)/num_bins
+    binsz_z = (zmax - zmin)/num_bins
+
+    print
+    print 'binsz_x:',binsz_x
+    print 'binsz_y:',binsz_y
+    print 'binsz_z:',binsz_z
+
+    bindices = manager.bindices_3D(num_bins)
+    print
+    print 'bindices:'
+    print bindices
+
+    result = manager.assign_particles_3D('sims/sim1_exact.txt', bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, num_bins, verbose=True)
+
+    #bindex = [0, 0, 0]
+    #ps = manager.load_bin_3D('sims/sim1_exact.txt', bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, verbose=True)
 
 def demo():
 

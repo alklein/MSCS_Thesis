@@ -65,23 +65,90 @@ Extracts all particles in the specified range from the file.
 Assumes a 3D partitioning on the data; i.e. bindex is a 3D
 vector of the form [i, j, k] that specifies the bin.
 """
-def load_bin_3D(filename, bindex, binsz, verbose=False):
+def load_bin_3D(filename, bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, verbose=False):
     [i, j, k] = bindex
-    inner_i, outer_i = i*binsz, (i + 1)*binsz
-    inner_j, outer_j = j*binsz, (j + 1)*binsz
-    inner_k, outer_k = k*binsz, (k + 1)*binsz
+    inner_x, outer_x = xmin + i*binsz_x, xmin + (i + 1)*binsz_x
+    inner_y, outer_y = ymin + j*binsz_y, ymin + (j + 1)*binsz_y
+    inner_z, outer_z = zmin + k*binsz_z, zmin + (k + 1)*binsz_z
+
+    if (verbose):
+        print
+        print 'inner x:',inner_x,'outer x:',outer_x
+        print 'inner y:',inner_y,'outer y:',outer_y
+        print 'inner z:',inner_z,'outer z:',outer_z
+        print
 
     ps = []
+    count = 0
     for line in open(filename):
+
+        if ((count % 1000000 == 0) and (verbose)): 
+            print count/1000000,'million particles searched...'
+        count += 1
+
         cur_p = [float(val) for val in line.split()]
         x, y, z = cur_p[0], cur_p[1], cur_p[2]
-        if ((inner_i < x <= outer_i) and (inner_j) \
-                and (inner_j < y <= outer_j) \
-                and (inner_k < z <= outer_k)):
-            if (verbose): print 'FOUND PARTICLE IN RANGE:',cur_p
+        if ((inner_x < x <= outer_x) \
+                and (inner_y < y <= outer_y) \
+                and (inner_z < z <= outer_z)):
+            if (verbose): print ' --- FOUND PARTICLE IN RANGE:',cur_p
             ps.append(cur_p)
     
     return np.array(ps)
+
+"""
+List of all bindices for 3D data partitioned 
+into num_bins along each axis
+(for a total of 3^{num_bins})
+"""
+def bindices_3D(num_bins):
+    return [[i, j, k] for i in range(num_bins)
+            for j in range(num_bins)
+            for k in range(num_bins)]
+
+"""
+Maps bindices to their particle counts in 3D.
+"""
+def assign_particles_3D(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, num_bins, verbose=False):
+
+    assignments = {str(bindex) : 0 for bindex in bindices}
+
+    xcuts = [xmin + i*binsz_x for i in range(num_bins)]
+    ycuts = [ymin + i*binsz_y for i in range(num_bins)]
+    zcuts = [zmin + i*binsz_z for i in range(num_bins)]
+    cuts = [xcuts, ycuts, zcuts]
+
+    count = 0
+    for line in open(filename):
+
+        if ((count % 1000000 == 0) and (verbose)):
+            print 
+            print count,'particles searched.'
+            print 'current assignments:'
+            for key in assignments:
+                if assignments[key] > 0:
+                    print key,'-',assignments[key]
+        count += 1
+
+        cur_p = [float(val) for val in line.split()]
+        cur_bindex = []
+        for i in range(3):
+            
+            cur_cuts = cuts[i]
+            val = cur_p[i]
+
+            index = 0
+            next_cut = cur_cuts[index + 1]
+          
+            if (val >= cur_cuts[-1]): 
+                cur_bindex.append(2)
+            else:
+                while ((index < len(cur_cuts) - 2) and (next_cut < val)):
+                    index += 1
+                    next_cut = cur_cuts[index + 1]
+                cur_bindex.append(index)
+        assignments[str(cur_bindex)] += 1
+                
 
 """
 Returns empirical min and max values of an entire dataset
