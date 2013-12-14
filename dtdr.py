@@ -276,10 +276,10 @@ class ND_Estimator:
 
 def KNN_tests_1D():
 
-    print ' >>> STARTING KNN TESTS <<<'
+    print ' >>> STARTING 1D KNN TESTS <<<'
     print
 
-    M, eta = 200, 200
+    M, eta = 1000, 1000
     K = 5
     Ts = range(1, 21)
 
@@ -342,54 +342,37 @@ def KNN_tests_1D():
     print ' >>> KNN regress times:', KNN_regress_times
     print ' >>> Full regress times:', full_regress_times
 
-def KNN_tests_ND():
+def KNN_tests_ND(dim=3):
 
-    T = 3
-    M = 100 # number of training instances
-    dim = 2
-    eta = 150 # particles (samples) per instance
+    print ' >>> STARTING KNN TESTS IN',dim,'DIMS <<<'
+
+    Ts = range(1, 11)
+    M, eta = 5000, 5000
+    K = 10
+
     print
-    print 'Extracting data with M =',M,' eta =',eta,' dim =',dim
+    print ' >>> Extracting data with M =',M,' eta =',eta,' dim =',dim
     data = manager.load_partial('sim1_exact.txt', M, dim, 15)
 
     print
-    print 'length of data:', len(data)
-    print 'number of samples per bin:',len(data[0])
-    print 'dimensionality of each sample:',len(data[0][0])
-
-    """
-    for i in range(len(data[0])):
-        data[:,i] = manager.scale_col(data[:,i])
-    """
+    print ' >>> Length of data:', len(data)
+    print ' >>> Number of samples per bin:',len(data[0])
+    print ' >>> Dimensionality of each sample:',len(data[0][0])
 
     print 
-    print 'before scaling,'
-    print 'min max col 0:', manager.col_min_max(data, 0)
-    print 'min max col 1:', manager.col_min_max(data, 1)
-    data = manager.scale_col_emp(data, 0)
-    data = manager.scale_col_emp(data, 1)
-    print 'after scaling,'
-    print 'min max col 0:', manager.col_min_max(data, 0)
-    print 'min max col 1:', manager.col_min_max(data, 1)
+    print ' >>> Before scaling,'
+    print ' >>> >>> min max col 0:', manager.col_min_max(data, 0)
+    print ' >>> >>> min max col 1:', manager.col_min_max(data, 1)
+    for i in range(dim):
+        data = manager.scale_col_emp(data, i)
+    print ' >>> After scaling,'
+    print ' >>> >>> min max col 0:', manager.col_min_max(data, 0)
+    print ' >>> >>> min max col 1:', manager.col_min_max(data, 1)
 
     [train_samples, cv_samples, test_samples] = manager.partition_data(data)
     print
-    print 'number of train samples:',len(train_samples)
-    print 'number of cv samples:',len(cv_samples)
-    print
-
-    all_train_samples = np.column_stack((train_samples, train_samples))
-    all_cv_samples = np.column_stack((cv_samples, cv_samples))
-    all_test_samples = np.column_stack((test_samples, test_samples))
-
-    """
-    Xs = all_train_samples[:,0]
-    print
-    print 'considering Xs.'
-    print 'length of data:', len(Xs)
-    print 'number of samples per bin:',len(Xs[0])
-    print 'dimensionality of each sample:',len(Xs[0][0])
-    """
+    print ' >>> Number of train samples:',len(train_samples)
+    print ' >>> Number of cv samples:',len(cv_samples)
 
     train_samples_in = train_samples
     train_samples_out = train_samples
@@ -398,10 +381,53 @@ def KNN_tests_ND():
     test_samples_in = test_samples
     test_samples_out = test_samples
 
-    start = time.clock()
-    E = ND_Estimator(train_samples_in, train_samples_out, cv_samples_in, cv_samples_out, test_samples_in, test_samples_out, degree = T, dim = dim)
-    #E = ND_Estimator(all_train_samples, all_cv_samples, degree = T, dim = dim)
-    E.train(parallel=False)
+    ball_build_times = []
+    KNN_regress_times = []
+    full_regress_times = []
+
+    # TEMP
+    print train_samples_in
+
+    for T in Ts:
+
+        print
+        print ' >>> T value:',T
+        print ' >>> Training estimator... '
+        start = time.clock()
+        E = ND_Estimator(train_samples_in, train_samples_out, cv_samples_in, cv_samples_out, test_samples_in, test_samples_out, degree = T, dim = dim)
+        E.train(parallel=False)
+        print ' >>> Train time:', time.clock() - start
+
+        print ' >>> Building ball tree... '
+        start = time.clock()
+        E.build_ball_tree()
+        ball_build_times.append(time.clock() - start)
+        print ' >>> Build time:', ball_build_times[-1]
+        
+        print ' >>> Performing KNN regression...'
+        start = time.clock()
+        for i in range(len(test_samples)):
+            X0_sample, Y0_sample = test_samples_in[i], test_samples_out[i]
+            X0_coeffs = fourier_coeffs_ND(X0_sample, degree=T, dim=dim)
+            'number of test coeffs:',len(X0_coeffs)
+            Y0_coeffs = E.KNN_regress(X0_coeffs, k=K)
+        KNN_regress_times.append(time.clock() - start)
+        print ' >>> KNN regression time:', KNN_regress_times[-1]
+
+        print ' >>> Performing full regression...'
+        start = time.clock()
+        for i in range(len(test_samples)):            
+            X0_sample, Y0_sample = test_samples_in[i], test_samples_out[i]
+            X0_coeffs = fourier_coeffs_ND(X0_sample, degree=T, dim=dim)
+            Y0_coeffs = E.full_regress(X0_coeffs)
+        full_regress_times.append(time.clock() - start)
+        print ' >>> Full regression time:', full_regress_times[-1]
+
+    print
+    print ' >>> Experiments complete.'
+    print ' >>> Ball build times:', ball_build_times
+    print ' >>> KNN regress times:', KNN_regress_times
+    print ' >>> Full regress times:', full_regress_times
     
 
 def coeff_tests():
@@ -424,6 +450,10 @@ def coeff_tests():
     xlabel('Degree', fontsize=24)
     ylabel('Time to Compute Coefficients (s)', fontsize=24)
 
+def bin_tests():
+
+    print manager.global_min_max('sims/sim1_exact.txt', 2, verbose=True)
+
 def demo():
 
     data = [[1, 2], [1, 3], [4, 5]]
@@ -437,9 +467,10 @@ def T_tests():
 
 def tests():
     #KNN_tests_1D()
-    KNN_tests_ND()
+    #KNN_tests_ND()
     #coeff_tests()
     #T_tests()
+    bin_tests()
 
 def demo():
     mini_data = manager.load_floats('sims/sim1_approx_1000.txt')[:100]

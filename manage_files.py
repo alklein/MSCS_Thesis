@@ -29,6 +29,7 @@ def load_floats(filename):
 """
 straight loading function (no sorting of particles; 
 just loads in order and puts the right number in each bin.)
+
 loads num bins of size binsz, for a total of num*binsz particles.
 loads first dim attributes of each particle.
 """
@@ -57,6 +58,44 @@ def load_partial(filename, num_bins, dim, binsz):
                 cur_particles_per_bin = 0
     # if we run out of data, just return what we have:
     return np.array(result)
+
+"""
+Extracts all particles in the specified range from the file.
+
+Assumes a 3D partitioning on the data; i.e. bindex is a 3D
+vector of the form [i, j, k] that specifies the bin.
+"""
+def load_bin_3D(filename, bindex, binsz, verbose=False):
+    [i, j, k] = bindex
+    inner_i, outer_i = i*binsz, (i + 1)*binsz
+    inner_j, outer_j = j*binsz, (j + 1)*binsz
+    inner_k, outer_k = k*binsz, (k + 1)*binsz
+
+    ps = []
+    for line in open(filename):
+        cur_p = [float(val) for val in line.split()]
+        x, y, z = cur_p[0], cur_p[1], cur_p[2]
+        if ((inner_i < x <= outer_i) and (inner_j) \
+                and (inner_j < y <= outer_j) \
+                and (inner_k < z <= outer_k)):
+            if (verbose): print 'FOUND PARTICLE IN RANGE:',cur_p
+            ps.append(cur_p)
+    
+    return np.array(ps)
+
+"""
+Returns empirical min and max values of an entire dataset
+along some axis (the specified column).
+"""
+def global_min_max(filename, col, verbose=False):
+    vals = []
+    count = 0
+    for line in open(filename):
+        cur_p = [float(val) for val in line.split()]
+        vals.append(cur_p[col])
+        if (count % 1000000 == 0): print count/1000000
+        count += 1
+    return (min(vals), max(vals))
 
 # data should be list of 6D samples,
 # where each sample is of the form

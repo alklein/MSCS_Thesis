@@ -61,8 +61,14 @@ def alphas_2D(degree):
     return [[a,b] for a in range(degree)
             for b in range(degree)]
 
+def alphas_3D(degree):
+    return [[a,b,c] for a in range(degree)
+            for b in range(degree)
+            for c in range(degree)]
+
 def alphas_ND(dim):
     if (dim == 2): return alphas_2D
+    elif (dim == 3): return alphas_3D
     elif (dim == 6): return alphas
     else: return None
 
