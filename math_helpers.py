@@ -46,13 +46,6 @@ def RBF_kernel(x):
     return math.exp(-(x**2)/2.)
 
 """
-defined for vector x
-"""
-def RBF_kernel(x):
-    sm = sum([x[i]**2 for i in range(len(x))])
-    return math.exp(-(sm**2)/2.)
-
-"""
 Indices for basis functions in 6D.
 There will be degree^6 index vectors.
 """
@@ -133,14 +126,11 @@ sample fit to num_terms. Coefficients are listed in the same order
 as defined by alphas().
 """
 def fourier_coeffs_ND(sample, degree, dim):
+
     indices = alphas_ND(dim)(degree)
-    print ' ~~~ len of sample:',len(sample)
-    print ' ~~~ sample:',sample
-    print ' ~~~ indices:', indices 
     result = []
     for alpha in indices:
-        phi_alpha = cosine_basis_ND(alpha, degree)
-        #for s in sample: print ' ~~~ s:',s
+        phi_alpha = cosine_basis_ND(alpha, dim)
         coeff = np.average([phi_alpha(s) for s in sample])
         result.append(coeff)
     return result

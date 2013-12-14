@@ -26,22 +26,36 @@ def load_floats(filename):
         result.append([float(val) for val in line.split()])
     return np.array(result)
 
-def load_partial(filename, num, dim, binsz):
+"""
+straight loading function (no sorting of particles; 
+just loads in order and puts the right number in each bin.)
+loads num bins of size binsz, for a total of num*binsz particles.
+loads first dim attributes of each particle.
+"""
+def load_partial(filename, num_bins, dim, binsz):
     result = []
     cur_sample = []
-    count = 1
-    bincount = 1
+    cur_num_bins = 0
+    cur_particles_per_bin = 0
+
     for line in open(filename):
-        row = [float(val) for val in line.split()]
-        cur_sample.append(row[:dim])
-        if (bincount == binsz):
-            result.append(cur_sample)
-            cur_sample = []
-            bincount = 1
+        if (cur_num_bins >= num_bins):
+            # we're done. return everything
+            return np.array(result)
         else:
-            bincount += 1
-        if (count == num): return np.array(result)
-        count += 1
+            # put current particle into a bin
+            row = [float(val) for val in line.split()]
+            if (cur_particles_per_bin < binsz):
+                # append to cur bin
+                cur_sample.append(row[:dim]) 
+                cur_particles_per_bin += 1
+            else:
+                # bin is done
+                result.append(cur_sample)
+                cur_num_bins += 1
+                cur_sample = []
+                cur_particles_per_bin = 0
+    # if we run out of data, just return what we have:
     return np.array(result)
 
 # data should be list of 6D samples,

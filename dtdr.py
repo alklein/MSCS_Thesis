@@ -158,7 +158,7 @@ class ND_Estimator:
     cv_sample is a list of "holdout" instances for cross-validation;
     each instance is a tuple of the form [in, out]_i.
     """
-    def __init__(self, training_sample, cv_sample, degree = 20, dim = 6, dist_fn = L2_distance, kernel = RBF_kernel, nonparametric_estimation = fourier_coeffs_ND, bandwidths = [.15, .25]): # bandwidths = [.15, .25, .5, .75, 1., 1.25, 1.5]): TEMP!!!! # NOTE: bandwidths should be tried in increasing order.
+    def __init__(self, train_samples_in, train_samples_out, cv_samples_in, cv_samples_out, test_samples_in, test_samples_out, degree = 20, dim = 6, dist_fn = L2_distance, kernel = RBF_kernel, nonparametric_estimation = fourier_coeffs_ND, bandwidths = [.15, .25]): # bandwidths = [.15, .25, .5, .75, 1., 1.25, 1.5]): TEMP!!!! # NOTE: bandwidths should be tried in increasing order.
 
         self.degree = degree
         self.dim = dim
@@ -168,15 +168,11 @@ class ND_Estimator:
         self.bandwidths = bandwidths
         self.best_b = None
 
-        self.Xs = training_sample[:,0]
-        self.Ys = training_sample[:,1]
-        self.cv_Xs = cv_sample[:,0]
-        self.cv_Ys = cv_sample[:,1]
-
-        # TEMP
-        print 'len Xs:', len(self.Xs)
-        print 'len Xs[0]:', len(self.Xs[0])
-
+        self.Xs = train_samples_in
+        self.Ys = train_samples_out
+        self.cv_Xs = cv_samples_in
+        self.cv_Ys = cv_samples_out
+        
         self.ball_tree = None
 
     def train(self, parallel=False, num_processes=5):
@@ -216,6 +212,7 @@ class ND_Estimator:
                 input_coeffs = self.cv_X_hats[i]
                 target_coeffs = self.cv_Y_hats[i]
                 Y0_coeffs = self.full_regress(input_coeffs, b=b)
+
                 net_err += L2_distance(target_coeffs, Y0_coeffs)
             avg_err = net_err / (1.*len(self.cv_Xs))
             print ' >>> >>> [debug] Average L2 error for bandwidth',b,'-',avg_err 
@@ -347,16 +344,18 @@ def KNN_tests_1D():
 
 def KNN_tests_ND():
 
-    dim = 2
     T = 3
-    M = 1000
-    eta = M
-    data = manager.load_partial('sim1_exact.txt', M, dim, 10)
+    M = 100 # number of training instances
+    dim = 2
+    eta = 150 # particles (samples) per instance
+    print
+    print 'Extracting data with M =',M,' eta =',eta,' dim =',dim
+    data = manager.load_partial('sim1_exact.txt', M, dim, 15)
 
     print
     print 'length of data:', len(data)
-    print 'length of bin:', len(data[0])
-    print 'length of sample within bin:',len(data[0][0])
+    print 'number of samples per bin:',len(data[0])
+    print 'dimensionality of each sample:',len(data[0][0])
 
     """
     for i in range(len(data[0])):
@@ -377,13 +376,31 @@ def KNN_tests_ND():
     print
     print 'number of train samples:',len(train_samples)
     print 'number of cv samples:',len(cv_samples)
-    
+    print
+
     all_train_samples = np.column_stack((train_samples, train_samples))
     all_cv_samples = np.column_stack((cv_samples, cv_samples))
     all_test_samples = np.column_stack((test_samples, test_samples))
 
+    """
+    Xs = all_train_samples[:,0]
+    print
+    print 'considering Xs.'
+    print 'length of data:', len(Xs)
+    print 'number of samples per bin:',len(Xs[0])
+    print 'dimensionality of each sample:',len(Xs[0][0])
+    """
+
+    train_samples_in = train_samples
+    train_samples_out = train_samples
+    cv_samples_in = cv_samples
+    cv_samples_out = cv_samples
+    test_samples_in = test_samples
+    test_samples_out = test_samples
+
     start = time.clock()
-    E = ND_Estimator(all_train_samples, all_cv_samples, degree = T, dim = dim)
+    E = ND_Estimator(train_samples_in, train_samples_out, cv_samples_in, cv_samples_out, test_samples_in, test_samples_out, degree = T, dim = dim)
+    #E = ND_Estimator(all_train_samples, all_cv_samples, degree = T, dim = dim)
     E.train(parallel=False)
     
 
