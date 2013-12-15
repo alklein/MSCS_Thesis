@@ -50,10 +50,11 @@ int readsim(string fname, _particle *pp) {
       infile.read( (char *)&pp[i].vy, sizeof(float) );
       infile.read( (char *)&pp[i].vz, sizeof(float) );
 
-      // immediately print out contents of current particle
-      cout << pp[i].ip << ' ' 
-	   << pp[i].ih << ' '
-	   << pp[i].x  << ' ' << pp[i].y << ' ' << pp[i].z << ' '
+      // immediately print out contents of current particle.
+      // currently only printing out positions and velocities
+      // cout << pp[i].ip << ' ' 
+      // << pp[i].ih << ' '
+      cout << pp[i].x  << ' ' << pp[i].y << ' ' << pp[i].z << ' '
 	   << pp[i].vx << ' ' << pp[i].vy << ' ' << pp[i].vz << endl;
     }
 

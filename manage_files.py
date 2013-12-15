@@ -109,9 +109,9 @@ def bindices_3D(num_bins):
 """
 Maps bindices to their particle counts in 3D.
 """
-def assign_particles_3D(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, num_bins, verbose=False):
+def count_particles_3D(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, num_bins, verbose=False):
 
-    assignments = {str(bindex) : 0 for bindex in bindices}
+    counts = {str(bindex) : 0 for bindex in bindices}
 
     xcuts = [xmin + i*binsz_x for i in range(num_bins)]
     ycuts = [ymin + i*binsz_y for i in range(num_bins)]
@@ -123,10 +123,53 @@ def assign_particles_3D(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, 
 
         if ((count % 1000000 == 0) and (verbose)):
             print 
-            print count,'particles searched.'
+            print count/1000000,'million particles searched'
+            print 'current counts:'
+            for key in counts:
+                if counts[key] > 0:
+                    print key,'-',counts[key]
+        count += 1
+
+        cur_p = [float(val) for val in line.split()]
+        cur_bindex = []
+        for i in range(3):
+            
+            cur_cuts = cuts[i]
+            val = cur_p[i]
+
+            index = 0
+            next_cut = cur_cuts[index + 1]
+          
+            if (val >= cur_cuts[-1]): 
+                cur_bindex.append(2)
+            else:
+                while ((index < len(cur_cuts) - 2) and (next_cut < val)):
+                    index += 1
+                    next_cut = cur_cuts[index + 1]
+                cur_bindex.append(index)
+        counts[str(cur_bindex)] += 1
+
+"""
+Maps bindices to their particles in 3D.
+"""
+def assign_particles_3D(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, num_bins, verbose=False):
+
+    assignments = {str(bindex) : [] for bindex in bindices}
+
+    xcuts = [xmin + i*binsz_x for i in range(num_bins)]
+    ycuts = [ymin + i*binsz_y for i in range(num_bins)]
+    zcuts = [zmin + i*binsz_z for i in range(num_bins)]
+    cuts = [xcuts, ycuts, zcuts]
+
+    count = 0
+    for line in open(filename):
+
+        if ((count % 1000000 == 0) and (verbose)):
+            print 
+            print count/1000000,'million particles searched'
             print 'current assignments:'
             for key in assignments:
-                if assignments[key] > 0:
+                if len(assignments[key]) > 0:
                     print key,'-',assignments[key]
         count += 1
 
@@ -147,7 +190,7 @@ def assign_particles_3D(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, 
                     index += 1
                     next_cut = cur_cuts[index + 1]
                 cur_bindex.append(index)
-        assignments[str(cur_bindex)] += 1
+        assignments[str(cur_bindex)].append(cur_p)
                 
 
 """
