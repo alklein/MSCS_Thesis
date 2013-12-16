@@ -453,6 +453,9 @@ def coeff_tests():
 
 def bin_tests():
 
+    print manager.global_min_max('sims/new_sim1_exact.txt', 2, verbose=True)
+    exit(0) # TEMP
+
     #num_bins = 32768
     num_bins = 10
 

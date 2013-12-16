@@ -1,10 +1,10 @@
 /*
 
-File: alt_parser.cpp
+File: my_parser.cpp
 Brief: Script to extract particles from binary simulation output file
 Author: Andrea Klein       <alklein@alumni.stanford.edu>
 
-Example Usage: g++ alt_parser.cpp -o parser
+Example Usage: g++ my_parser.cpp -o parser
        ./parser > particles.txt
 Note: the infile must be in the same directory.
 
