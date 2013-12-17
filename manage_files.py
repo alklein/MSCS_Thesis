@@ -16,6 +16,7 @@ import itertools
 import numpy as np
 
 from random import *
+from math_helpers import *
 
 def raw_load(filename):
     return np.array([line.split() for line in open(filename)])
@@ -83,15 +84,18 @@ def load_bin_3D(filename, bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, v
     for line in open(filename):
 
         if ((count % 1000000 == 0) and (verbose)): 
+            print
             print count/1000000,'million particles searched...'
+            print 'particles found so far:',len(ps)
         count += 1
 
         cur_p = [float(val) for val in line.split()]
         x, y, z = cur_p[0], cur_p[1], cur_p[2]
-        if ((inner_x < x <= outer_x) \
-                and (inner_y < y <= outer_y) \
-                and (inner_z < z <= outer_z)):
-            if (verbose): print ' --- FOUND PARTICLE IN RANGE:',cur_p
+#        if ((inner_x < x <= outer_x) \
+#                and (inner_y < y <= outer_y) \
+#                and (inner_z < z <= outer_z)):
+        if ((inner_x < x) and (x <= outer_x) and (inner_y < y) and (y <= outer_y) and (inner_z < z) and (z <= outer_z)): #and (inner_z < z) and (z <= outer_z)):
+            #if (verbose): print ' --- FOUND PARTICLE IN RANGE:',cur_p
             ps.append(cur_p)
     
     return np.array(ps)
@@ -147,7 +151,8 @@ def count_particles_3D(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, b
                     index += 1
                     next_cut = cur_cuts[index + 1]
                 cur_bindex.append(index)
-        counts[str(cur_bindex)] += 1
+        if (str(cur_bindex) in counts):
+            counts[str(cur_bindex)] += 1
 
 """
 Maps bindices to their particles in 3D.
@@ -190,8 +195,24 @@ def assign_particles_3D(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, 
                     index += 1
                     next_cut = cur_cuts[index + 1]
                 cur_bindex.append(index)
-        assignments[str(cur_bindex)].append(cur_p)
+        if (str(cur_bindex) in assignments):
+            assignments[str(cur_bindex)].append(cur_p)
                 
+
+def save_assignments_3D(assignments, T, filename, xmin, xmax, ymin, ymax, zmin, zmax):
+    for bindex in assignments:
+        print
+        ps = assignments[bindex]
+        cut_ps = [p[:3] for p in ps]
+        scaled_ps = [[(p[0] - xmin) / (xmax - xmin), (p[1] - ymin) / (ymax - ymin), (p[2] - zmin) / (zmax - zmin)] for p in cut_ps]
+        coeffs = fourier_coeffs_ND(scaled_ps, T, 3)
+        outp = ''
+        for c in coeffs: outp += str(c) + ' '
+        outp += '\n'
+        print outp
+        f = open(filename, 'a')
+        f.write(outp)
+        f.close()
 
 """
 Returns empirical min and max values of an entire dataset

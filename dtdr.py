@@ -274,6 +274,15 @@ class ND_Estimator:
             
         return Y0_coeffs
 
+def test_errs_3D(E, test_Xs, test_Ys):
+    test_X_hats = [E.nonparametric_estimation(sample, E.num_terms) for sample in test_Xs]
+    test_Y_hats = [E.nonparametric_estimation(sample, E.num_terms) for sample in test_Ys]
+    errs = []
+    for i in range(len(test_X_hats)):
+        est_Y_hat = E.regress(test_X_hats[i])
+        err = E.dist_fn(test_Y_hats[i], est_Y_hat)
+        errs.append(err)
+    return errs
 
 def KNN_tests_1D():
 
@@ -451,13 +460,11 @@ def coeff_tests():
     xlabel('Degree', fontsize=24)
     ylabel('Time to Compute Coefficients (s)', fontsize=24)
 
-def bin_tests():
+def bin_tests():    
 
-    print manager.global_min_max('sims/new_sim1_exact.txt', 2, verbose=True)
-    exit(0) # TEMP
-
-    #num_bins = 32768
-    num_bins = 10
+    #num_bins = int(32768**(1./3))
+    num_bins = 5
+    print 'num bins:',num_bins
 
     (xmin, xmax) = constants.col_0_min_max
     (ymin, ymax) = constants.col_1_min_max
@@ -472,15 +479,127 @@ def bin_tests():
     print 'binsz_y:',binsz_y
     print 'binsz_z:',binsz_z
 
-    bindices = manager.bindices_3D(num_bins)
+    bindices = manager.bindices_3D(num_bins) #[:100] # TEMP: consider subset of bins
     print
     print 'bindices:'
     print bindices
 
-    result = manager.assign_particles_3D('sims/sim1_exact.txt', bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, num_bins, verbose=True)
+    manager.count_particles_3D('sims/new_sim1_exact.txt', bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, num_bins, verbose=True)
+
+#    assignments = manager.assign_particles_3D('sims/new_sim1_exact.txt', bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, num_bins, verbose=True)
+#    np.savetxt('assign.txt', [])
+#    manager.save_assignments_3D(assignments, 5, 'assign.txt', xmin, xmax, ymin, ymax, zmin, zmax)    
 
     #bindex = [0, 0, 0]
     #ps = manager.load_bin_3D('sims/sim1_exact.txt', bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, verbose=True)
+
+def ID_tests():
+
+    #num_bins = int(32768**(1./3))
+    num_bins = 10
+    bindex = [0, 0, 0]
+
+    (xmin, xmax) = constants.col_0_min_max
+    (ymin, ymax) = constants.col_1_min_max
+    (zmin, zmax) = constants.col_2_min_max
+
+    binsz_x = (xmax - xmin)/num_bins
+    binsz_y = (ymax - ymin)/num_bins
+    binsz_z = (zmax - zmin)/num_bins
+
+    # isolate cube; put in file
+    #ps = manager.load_bin_3D('sims/new_sim1_exact.txt', bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, verbose=True)
+    #np.savetxt('ex_bin.txt', ps)
+
+    # rescale 
+
+    new_num_bins = 10
+
+    new_xmin, new_xmax = xmin + bindex[0]*binsz_x, xmin + (bindex[0] + 1)*binsz_x
+    new_ymin, new_ymax = ymin + bindex[1]*binsz_y, ymin + (bindex[1] + 1)*binsz_y
+    new_zmin, new_zmax = zmin + bindex[2]*binsz_z, zmin + (bindex[2] + 1)*binsz_z
+
+    print
+    print 'new x range:',new_xmin,new_xmax
+    print 'new y range:',new_ymin,new_ymax
+    print 'new z range:',new_zmin,new_zmax
+
+    new_binsz_x = (new_xmax - new_xmin)/new_num_bins
+    new_binsz_y = (new_ymax - new_ymin)/new_num_bins
+    new_binsz_z = (new_zmax - new_zmin)/new_num_bins
+
+    print
+    print 'new binsz_x:',new_binsz_x
+    print 'new binsz_y:',new_binsz_y
+    print 'new binsz_z:',new_binsz_z
+
+    new_bindices = manager.bindices_3D(new_num_bins)    
+
+    assignments = manager.assign_particles_3D('ex_bin.txt', new_bindices, new_xmin, new_ymin, new_zmin, new_binsz_x, new_binsz_y, new_binsz_z, new_num_bins, verbose=True)
+    input_ps = []
+    for key in assignments:
+        cur = assignments[key]
+        if len(cur) > 0: input_ps.append(cur)
+
+    print
+    print 'number of training instances available:', len(input_ps)
+
+    # run algorithm with some fraction of inputs
+
+    for i in range(3):
+        input_ps = manager.scale_col_emp(input_ps, i)
+
+    # if desired: choose some subset of the training samples here. 
+    # run following tests for different sizes
+
+    [train_samples, cv_samples, test_samples] = manager.partition_data(input_ps)
+
+    train_samples_in = train_samples
+    train_samples_out = train_samples
+    cv_samples_in = cv_samples
+    cv_samples_out = cv_samples
+    test_samples_in = test_samples
+    test_samples_out = test_samples
+
+    E = ND_Estimator(train_samples_in, train_samples_out, cv_samples_in, cv_samples_out, test_samples_in, test_samples_out, degree = T, dim = dim)
+    E.train(parallel=False)
+
+    # compute average test error on test samples
+    avg_err = np.average(test_errs_3D(E, test_samples_in, test_samples_out))
+    print
+    print 'average test error:', avg_err
+
+def misc():
+
+    num_bins = int(32768**(1./3))
+    bindex = [0, 0, 0]
+    bindices = [bindex]
+
+    (xmin, xmax) = constants.col_0_min_max
+    (ymin, ymax) = constants.col_1_min_max
+    (zmin, zmax) = constants.col_2_min_max
+
+    binsz_x = (xmax - xmin)/num_bins
+    binsz_y = (ymax - ymin)/num_bins
+    binsz_z = (zmax - zmin)/num_bins
+
+    ass = manager.count_particles_3D('sims/new_sim1_exact.txt', bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, num_bins, verbose=True)
+
+def data_tests():
+
+    assignments = {}
+    assignments['[0, 0, 0]'] = [[1, 2, 3, 4, 5, 6], [3, 3, 3, 3, 3, 3], [4, 4, 4, 3, 3, 3]]
+    assignments['[0, 1, 1]'] = [[1, 2, 3, 4, 5, 6], [3, 3, 3, 3, 3, 3], [4, 4, 4, 3, 3, 2]]
+    assignments['[0, 2, 0]'] = [[1, 2, 3, 4, 5, 6], [3, 3, 3, 3, 3, 3], [2, 2, 2, 2, 2, 2]]
+    
+    xmin, xmax = 1., 6.
+    ymin, ymax = 1., 6.
+    zmin, zmax = 1., 6.
+
+    np.savetxt('assign.txt', [])
+    manager.save_assignments_3D(assignments, 3, 'assign.txt', xmin, xmax, ymin, ymax, zmin, zmax)
+    coeffs = np.loadtxt('assign.txt')
+    print coeffs
 
 def demo():
 
@@ -498,7 +617,10 @@ def tests():
     #KNN_tests_ND()
     #coeff_tests()
     #T_tests()
-    bin_tests()
+    #bin_tests()
+    #misc()
+    ID_tests()
+    #data_tests()
 
 def demo():
     mini_data = manager.load_floats('sims/sim1_approx_1000.txt')[:100]
