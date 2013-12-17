@@ -159,7 +159,7 @@ class ND_Estimator:
     cv_sample is a list of "holdout" instances for cross-validation;
     each instance is a tuple of the form [in, out]_i.
     """
-    def __init__(self, train_samples_in, train_samples_out, cv_samples_in, cv_samples_out, test_samples_in, test_samples_out, degree = 20, dim = 6, dist_fn = L2_distance, kernel = RBF_kernel, nonparametric_estimation = fourier_coeffs_ND, bandwidths = [.15, .25]): # bandwidths = [.15, .25, .5, .75, 1., 1.25, 1.5]): TEMP!!!! # NOTE: bandwidths should be tried in increasing order.
+    def __init__(self, train_samples_in, train_samples_out, cv_samples_in, cv_samples_out, test_samples_in, test_samples_out, degree = 20, dim = 6, dist_fn = L2_distance, kernel = RBF_kernel, nonparametric_estimation = fourier_coeffs_ND, bandwidths = [.5, 1, 2, 5]): # bandwidths = [.15, .25, .5, .75, 1., 1.25, 1.5]): TEMP!!!! # NOTE: bandwidths should be tried in increasing order.
 
         self.degree = degree
         self.dim = dim
@@ -237,6 +237,9 @@ class ND_Estimator:
 
         normed_distances = np.array([self.dist_fn(f0, f) for f in self.X_hats]) / b
         k_sum = sum([self.kernel(d) for d in normed_distances])        
+        if (k_sum == 0): 
+            print ' >>> >>> [debug] WARNING: k_sum underflow detected'
+            k_sum = .00001
         weights = [self.kernel(normed_distances[i]) / k_sum for i in range(len(self.X_hats))]
 
         a = np.matrix.transpose(np.array(self.Y_hats))
@@ -504,6 +507,25 @@ def my_writetxt(filename, data):
         f.write(outp)
     f.close()
 
+def Jhat_tests():
+
+    sample = np.loadtxt('ex_bin_18.txt')
+    print
+    print 'len sample:',len(sample)
+
+    samp = [sample]
+    for col in range(3):
+        samp = manager.scale_col_emp(samp, col)
+    samp = samp[0]
+    sample = np.column_stack((samp[:,0], samp[:,1], samp[:,2]))
+
+    dim = 3
+    for deg in range(10):
+        print
+        print 'deg:',deg,'Jhat:',J_hat_ND(sample, deg, dim)
+
+    exit(0) # TEMP
+
 def ID_tests():
 
     #num_bins = int(32768**(1./3))
@@ -520,11 +542,12 @@ def ID_tests():
 
     # isolate cube; put in file
     #ps = manager.load_bin_3D('sims/new_sim1_exact.txt', bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, verbose=True)
-    #my_writetxt('ex_bin.txt', ps)
+    #my_writetxt('ex_bin_17.txt', ps)
+    #exit(0) # TEMP
 
     # rescale 
 
-    new_num_bins = 10
+    new_num_bins = 50
 
     new_xmin, new_xmax = xmin + bindex[0]*binsz_x, xmin + (bindex[0] + 1)*binsz_x
     new_ymin, new_ymax = ymin + bindex[1]*binsz_y, ymin + (bindex[1] + 1)*binsz_y
@@ -546,11 +569,11 @@ def ID_tests():
 
     new_bindices = manager.bindices_3D(new_num_bins)    
 
-    assignments = manager.assign_particles_3D('ex_bin.txt', new_bindices, new_xmin, new_ymin, new_zmin, new_binsz_x, new_binsz_y, new_binsz_z, new_num_bins, verbose=True, chunk=10000)
+    assignments = manager.assign_particles_3D('ex_bin_18.txt', new_bindices, new_xmin, new_ymin, new_zmin, new_binsz_x, new_binsz_y, new_binsz_z, new_num_bins, verbose=True, chunk=10000)
     input_ps = []
-    for key in assignments:
+    for key in sorted(assignments.keys()):
         cur = assignments[key]
-        if len(cur) > 0: input_ps.append(cur)
+        if len(cur) >= 5: input_ps.append(cur)
 
     print
     print 'number of training instances available:', len(input_ps)
@@ -571,6 +594,10 @@ def ID_tests():
     cv_samples_out = cv_samples
     test_samples_in = test_samples
     test_samples_out = test_samples
+
+    print 
+    print 'num training samples:', len(train_samples)
+    print 'num cv / test samples:', len(cv_samples)
 
     T = 3
     dim = 3
@@ -633,6 +660,7 @@ def tests():
     #T_tests()
     #bin_tests()
     #misc()
+    #Jhat_tests()
     ID_tests()
     #data_tests()
 
