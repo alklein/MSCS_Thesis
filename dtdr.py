@@ -493,10 +493,21 @@ def bin_tests():
     #bindex = [0, 0, 0]
     #ps = manager.load_bin_3D('sims/sim1_exact.txt', bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, verbose=True)
 
+def my_writetxt(filename, data):
+    np.savetxt(filename, [])
+    f = open(filename, 'r+')
+    for line in data:
+        outp = ''
+        for val in line:
+            outp += str(val) + ' '
+        outp += '\n'
+        f.write(outp)
+    f.close()
+
 def ID_tests():
 
     #num_bins = int(32768**(1./3))
-    num_bins = 10
+    num_bins = 18
     bindex = [0, 0, 0]
 
     (xmin, xmax) = constants.col_0_min_max
@@ -508,8 +519,8 @@ def ID_tests():
     binsz_z = (zmax - zmin)/num_bins
 
     # isolate cube; put in file
-    #ps = manager.load_bin_3D('sims/new_sim1_exact.txt', bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, verbose=True)
-    #np.savetxt('ex_bin.txt', ps)
+    ps = manager.load_bin_3D('sims/new_sim1_exact.txt', bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, verbose=True)
+    my_savetxt('ex_bin.txt', ps)
 
     # rescale 
 
