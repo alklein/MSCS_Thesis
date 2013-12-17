@@ -275,11 +275,11 @@ class ND_Estimator:
         return Y0_coeffs
 
 def test_errs_3D(E, test_Xs, test_Ys):
-    test_X_hats = [E.nonparametric_estimation(sample, E.num_terms) for sample in test_Xs]
-    test_Y_hats = [E.nonparametric_estimation(sample, E.num_terms) for sample in test_Ys]
+    test_X_hats = [E.nonparametric_estimation(sample, E.degree, E.dim) for sample in test_Xs]
+    test_Y_hats = [E.nonparametric_estimation(sample, E.degree, E.dim) for sample in test_Ys]
     errs = []
     for i in range(len(test_X_hats)):
-        est_Y_hat = E.regress(test_X_hats[i])
+        est_Y_hat = E.full_regress(test_X_hats[i])
         err = E.dist_fn(test_Y_hats[i], est_Y_hat)
         errs.append(err)
     return errs
@@ -519,8 +519,8 @@ def ID_tests():
     binsz_z = (zmax - zmin)/num_bins
 
     # isolate cube; put in file
-    ps = manager.load_bin_3D('sims/new_sim1_exact.txt', bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, verbose=True)
-    my_savetxt('ex_bin.txt', ps)
+    #ps = manager.load_bin_3D('sims/new_sim1_exact.txt', bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, verbose=True)
+    #my_writetxt('ex_bin.txt', ps)
 
     # rescale 
 
@@ -546,7 +546,7 @@ def ID_tests():
 
     new_bindices = manager.bindices_3D(new_num_bins)    
 
-    assignments = manager.assign_particles_3D('ex_bin.txt', new_bindices, new_xmin, new_ymin, new_zmin, new_binsz_x, new_binsz_y, new_binsz_z, new_num_bins, verbose=True)
+    assignments = manager.assign_particles_3D('ex_bin.txt', new_bindices, new_xmin, new_ymin, new_zmin, new_binsz_x, new_binsz_y, new_binsz_z, new_num_bins, verbose=True, chunk=10000)
     input_ps = []
     for key in assignments:
         cur = assignments[key]
@@ -571,6 +571,9 @@ def ID_tests():
     cv_samples_out = cv_samples
     test_samples_in = test_samples
     test_samples_out = test_samples
+
+    T = 3
+    dim = 3
 
     E = ND_Estimator(train_samples_in, train_samples_out, cv_samples_in, cv_samples_out, test_samples_in, test_samples_out, degree = T, dim = dim)
     E.train(parallel=False)

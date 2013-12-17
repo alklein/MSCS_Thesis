@@ -97,6 +97,7 @@ def load_bin_3D(filename, bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, v
         if ((inner_x < x) and (x <= outer_x) and (inner_y < y) and (y <= outer_y) and (inner_z < z) and (z <= outer_z)): #and (inner_z < z) and (z <= outer_z)):
             #if (verbose): print ' --- FOUND PARTICLE IN RANGE:',cur_p
             ps.append(cur_p)
+        #if (count/1000000 > 20): return np.array(ps) # TEMP
     
     return np.array(ps)
 
@@ -157,7 +158,7 @@ def count_particles_3D(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, b
 """
 Maps bindices to their particles in 3D.
 """
-def assign_particles_3D(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, num_bins, verbose=False):
+def assign_particles_3D(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, num_bins, verbose=False, chunk=1000000):
 
     assignments = {str(bindex) : [] for bindex in bindices}
 
@@ -169,13 +170,14 @@ def assign_particles_3D(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, 
     count = 0
     for line in open(filename):
 
-        if ((count % 1000000 == 0) and (verbose)):
+        if ((count % chunk == 0) and (verbose)):
             print 
-            print count/1000000,'million particles searched'
+            print count/chunk,'million particles searched'
             print 'current assignments:'
             for key in assignments:
-                if len(assignments[key]) > 0:
-                    print key,'-',assignments[key]
+                pass
+            #if len(assignments[key]) > 0:
+            #        print key,'-',assignments[key]
         count += 1
 
         cur_p = [float(val) for val in line.split()]
@@ -197,6 +199,8 @@ def assign_particles_3D(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, 
                 cur_bindex.append(index)
         if (str(cur_bindex) in assignments):
             assignments[str(cur_bindex)].append(cur_p)
+
+    return assignments
                 
 
 def save_assignments_3D(assignments, T, filename, xmin, xmax, ymin, ymax, zmin, zmax):
