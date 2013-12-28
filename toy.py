@@ -15,9 +15,9 @@ import math
 import itertools
 import numpy as np
 
-#from pylab import *
+from pylab import *
 from random import *
-from sklearn import *
+#from sklearn import *
 from multiprocessing import Pool
 
 from pll_helpers import *
@@ -655,9 +655,9 @@ def test():
     pll_test()
     exit(0)
 
-def demo(num_plots = 1):
+def demo(num_plots = 5):
 
-    M, eta = 1000, 1000
+    M, eta = 10000, 10000
 
     print
     print ' > [debug] Making new toyData object...'
@@ -710,7 +710,7 @@ def demo(num_plots = 1):
         figure(2*i)
         hist(X0_sample, bins=100, normed=True, color='r')
         plot(xs, map(X0_hat, xs), linewidth=2, color='b')
-        title('INPUT. M: ' + str(M) + ' eta: ' + str(eta))
+#        title('INPUT. M: ' + str(M) + ' eta: ' + str(eta))
         axes = gca()
         axes.set_xlim(0, 1)
         axes.set_ylim(-1, 6)
@@ -724,7 +724,7 @@ def demo(num_plots = 1):
         axes.set_xlim(0, 1)
         axes.set_ylim(-1, 6)
         
-#    show()
+    show()
 
     ks = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     avg_errs = [np.average(test_errs(E, test_data, parallel=True, KNN=True, k=ks[i])) for i in range(len(ks))]

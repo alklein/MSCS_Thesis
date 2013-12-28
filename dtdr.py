@@ -519,8 +519,8 @@ def ID_tests():
     binsz_z = (zmax - zmin)/num_bins
 
     # isolate cube; put in file
-    ps = manager.load_bin_3D('sims/new_sim1_exact.txt', bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, verbose=True)
-    my_savetxt('ex_bin.txt', ps)
+    #ps = manager.load_bin_3D('sims/new_sim1_exact.txt', bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, verbose=True)
+    #my_savetxt('ex_bin.txt', ps)
 
     # rescale 
 
@@ -546,7 +546,7 @@ def ID_tests():
 
     new_bindices = manager.bindices_3D(new_num_bins)    
 
-    assignments = manager.assign_particles_3D('ex_bin.txt', new_bindices, new_xmin, new_ymin, new_zmin, new_binsz_x, new_binsz_y, new_binsz_z, new_num_bins, verbose=True)
+    assignments = manager.assign_particles_3D('ex_bin_18.txt', new_bindices, new_xmin, new_ymin, new_zmin, new_binsz_x, new_binsz_y, new_binsz_z, new_num_bins, verbose=True)
     input_ps = []
     for key in assignments:
         cur = assignments[key]
