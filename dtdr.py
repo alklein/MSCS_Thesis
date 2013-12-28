@@ -487,7 +487,7 @@ def bin_tests():
     print 'bindices:'
     print bindices
 
-    manager.count_particles_3D('sims/new_sim1_exact.txt', bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, num_bins, verbose=True)
+    manager.count_particles_3D('sims/new_sim1_approx.txt', bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, num_bins, verbose=True)
 
 #    assignments = manager.assign_particles_3D('sims/new_sim1_exact.txt', bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, num_bins, verbose=True)
 #    np.savetxt('assign.txt', [])
@@ -541,8 +541,8 @@ def ID_tests():
     binsz_z = (zmax - zmin)/num_bins
 
     # isolate cube; put in file
-    #ps = manager.load_bin_3D('sims/new_sim1_exact.txt', bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, verbose=True)
-    #my_writetxt('ex_bin_17.txt', ps)
+    #ps = manager.load_bin_3D('sims/new_sim1_approx.txt', bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, verbose=True)
+    #my_writetxt('ex_bin_18_approx.txt', ps)
     #exit(0) # TEMP
 
     # rescale 
@@ -569,14 +569,15 @@ def ID_tests():
 
     new_bindices = manager.bindices_3D(new_num_bins)    
 
-    assignments = manager.assign_particles_3D('ex_bin_18.txt', new_bindices, new_xmin, new_ymin, new_zmin, new_binsz_x, new_binsz_y, new_binsz_z, new_num_bins, verbose=True, chunk=10000)
     input_ps = []
+    assignments = manager.assign_particles_3D('ex_bin_18.txt', new_bindices, new_xmin, new_ymin, new_zmin, new_binsz_x, new_binsz_y, new_binsz_z, new_num_bins, verbose=True, chunk=10000)
     for key in sorted(assignments.keys()):
         cur = assignments[key]
         if len(cur) >= 5: input_ps.append(cur)
 
     print
     print 'number of training instances available:', len(input_ps)
+    print 'avg. points/instance:', np.average([len(p) for p in input_ps])
 
     # run algorithm with some fraction of inputs
 
@@ -586,29 +587,119 @@ def ID_tests():
     # if desired: choose some subset of the training samples here. 
     # run following tests for different sizes
 
-    [train_samples, cv_samples, test_samples] = manager.partition_data(input_ps)
-
-    train_samples_in = train_samples
-    train_samples_out = train_samples
-    cv_samples_in = cv_samples
-    cv_samples_out = cv_samples
-    test_samples_in = test_samples
-    test_samples_out = test_samples
-
-    print 
-    print 'num training samples:', len(train_samples)
-    print 'num cv / test samples:', len(cv_samples)
-
-    T = 3
     dim = 3
+    T = 3
+    partial_lengths = [10, 50, 100, 150, 200, 250]
+    errs = []
 
-    E = ND_Estimator(train_samples_in, train_samples_out, cv_samples_in, cv_samples_out, test_samples_in, test_samples_out, degree = T, dim = dim)
-    E.train(parallel=False)
+    for length in partial_lengths:
+        
+        partial_input = input_ps[:length]
+        [train_samples, cv_samples, test_samples] = manager.partition_data(partial_input)
 
-    # compute average test error on test samples
-    avg_err = np.average(test_errs_3D(E, test_samples_in, test_samples_out))
+        train_samples_in = train_samples
+        train_samples_out = train_samples
+        cv_samples_in = cv_samples
+        cv_samples_out = cv_samples
+        test_samples_in = test_samples
+        test_samples_out = test_samples
+
+        print 
+        print 'num training samples:', len(train_samples)
+        print 'num cv / test samples:', len(cv_samples)
+        
+        E = ND_Estimator(train_samples_in, train_samples_out, cv_samples_in, cv_samples_out, test_samples_in, test_samples_out, degree = T, dim = dim)
+        E.train(parallel=False)
+
+        # compute average test error on test samples
+        avg_err = np.average(test_errs_3D(E, test_samples_in, test_samples_out))
+        print
+        print 'average test error:', avg_err
+        errs.append(avg_err)
+
     print
-    print 'average test error:', avg_err
+    for i in range(len(partial_lengths)):
+        print 'data length:', partial_lengths[i],'avg. test error:',errs[i]
+
+def regression_tests():
+
+    num_bins = 18
+    bindex = [0, 0, 0]
+
+    (xmin, xmax) = constants.col_0_min_max
+    (ymin, ymax) = constants.col_1_min_max
+    (zmin, zmax) = constants.col_2_min_max
+
+    binsz_x = (xmax - xmin)/num_bins
+    binsz_y = (ymax - ymin)/num_bins
+    binsz_z = (zmax - zmin)/num_bins
+
+    new_num_bins = 50
+
+    new_xmin, new_xmax = xmin + bindex[0]*binsz_x, xmin + (bindex[0] + 1)*binsz_x
+    new_ymin, new_ymax = ymin + bindex[1]*binsz_y, ymin + (bindex[1] + 1)*binsz_y
+    new_zmin, new_zmax = zmin + bindex[2]*binsz_z, zmin + (bindex[2] + 1)*binsz_z
+
+    print
+    print 'new x range:',new_xmin,new_xmax
+    print 'new y range:',new_ymin,new_ymax
+    print 'new z range:',new_zmin,new_zmax
+
+    new_binsz_x = (new_xmax - new_xmin)/new_num_bins
+    new_binsz_y = (new_ymax - new_ymin)/new_num_bins
+    new_binsz_z = (new_zmax - new_zmin)/new_num_bins
+
+    print
+    print 'new binsz_x:',new_binsz_x
+    print 'new binsz_y:',new_binsz_y
+    print 'new binsz_z:',new_binsz_z
+
+    new_bindices = manager.bindices_3D(new_num_bins)    
+
+    inp_assignments = manager.assign_particles_3D('ex_bin_18.txt', new_bindices, new_xmin, new_ymin, new_zmin, new_binsz_x, new_binsz_y, new_binsz_z, new_num_bins, verbose=True, chunk=10000)
+    outp_assignments = manager.assign_particles_3D('ex_bin_18_approx.txt', new_bindices, new_xmin, new_ymin, new_zmin, new_binsz_x, new_binsz_y, new_binsz_z, new_num_bins, verbose=True, chunk=10000)
+    input_ps, output_ps = [], []
+
+    for key in sorted(inp_assignments.keys()):
+        cur_inp = inp_assignments[key]
+        cur_outp = outp_assignments[key]
+        if (len(cur_inp) >= 5 and len(cur_outp) >= 5): 
+            input_ps.append(cur_inp)
+            output_ps.append(cur_outp)
+
+    print
+    print 'number of training instances available:', len(input_ps)
+    print 'avg. points/instance:', np.average([len(p) for p in input_ps])
+
+    for i in range(3):
+        input_ps = manager.scale_col_emp(input_ps, i)
+        output_ps = manager.scale_col_emp(output_ps, i)
+
+    dim = 3
+    T = 5
+    partial_lengths = [10, 50, 100, 150, 200, 250, 300, 350]
+    errs = []
+
+    for length in partial_lengths:
+        
+        partial_input = input_ps[:length]
+        partial_output = output_ps[:length]
+        [train_samples_in, cv_samples_in, test_samples_in] = manager.partition_data(partial_input)
+        [train_samples_out, cv_samples_out, test_samples_out] = manager.partition_data(partial_output)
+
+        E = ND_Estimator(train_samples_in, train_samples_out, cv_samples_in, cv_samples_out, test_samples_in, test_samples_out, degree = T, dim = dim)
+        E.train(parallel=False)
+
+        # compute average test error on test samples
+        avg_err = np.average(test_errs_3D(E, test_samples_in, test_samples_out))
+        print
+        print 'average test error:', avg_err
+        errs.append(avg_err)
+
+    print
+    for i in range(len(partial_lengths)):
+        print 'data length:', partial_lengths[i],'avg. test error:',errs[i]
+
 
 def misc():
 
@@ -658,10 +749,11 @@ def tests():
     #KNN_tests_ND()
     #coeff_tests()
     #T_tests()
-    #bin_tests()
+    bin_tests()
     #misc()
     #Jhat_tests()
-    ID_tests()
+    #ID_tests()
+    #regression_tests()
     #data_tests()
 
 def demo():

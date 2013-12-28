@@ -653,7 +653,6 @@ def test():
     #T_test()
     # load_speed_test()
     pll_test()
-    exit(0)
 
 def demo(num_plots = 1):
 
@@ -719,13 +718,10 @@ def demo(num_plots = 1):
         hist(Y0_sample, bins=100, normed=True, color='r')
         plot(xs, map(Y0, xs), linewidth=2, color='b')
         plot(xs, map(Y0_hat, xs), linewidth=2, color='k')
-#        title('OUTPUT. M: ' + str(M) + ' eta: ' + str(eta))
         axes = gca()
         axes.set_xlim(0, 1)
         axes.set_ylim(-1, 6)
         
-#    show()
-
     ks = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     avg_errs = [np.average(test_errs(E, test_data, parallel=True, KNN=True, k=ks[i])) for i in range(len(ks))]
     avg_errs.append(np.average(test_errs(E, test_data, parallel=True, KNN=False)))
@@ -740,7 +736,6 @@ def demo(num_plots = 1):
     axhline(y = avg_errs[-1])
     xlabel('K', fontsize=24)
     ylabel('Avgerage L2 Error', fontsize=24)
- #   title('M, eta = ' + str(eta), fontsize=30)
     show()
 
 
