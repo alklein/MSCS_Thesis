@@ -141,4 +141,22 @@ def fourier_coeffs_ND(sample, degree, dim):
         result.append(coeff)
     return result
 
+"""
+Unbiased risk associated with fitting sample with a
+nonparametric estimator with this degree
+"""
+def J_hat_ND(sample, degree, dim):
 
+    indices = alphas_ND(dim)(degree)
+    coeffs = fourier_coeffs_ND(sample, degree, dim)
+    T = len(coeffs)
+    n = len(sample)
+    result = 0
+
+    for j in range(T):
+        alpha = indices[j]
+        term = 0
+        for i in range(n):
+            term += (2./n) * ((cosine_basis_ND(alpha, dim)(sample[i]))**2 - (n + 1)*(coeffs[j])**2)
+        result += term
+    return (1./(n - 1))*result

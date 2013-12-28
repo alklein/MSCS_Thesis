@@ -17,7 +17,7 @@ Note: the infile must be in the same directory.
 using namespace std;
 
 // Change infile here
-std::string simfile = "sims/xv_dm.z=00.0000_sim1";
+std::string simfile = "sims/xv_2lpt.z=00.0000_sim1";
 
 // Total number of particles Np is ~ 2^30
 // exact number: 1039119117

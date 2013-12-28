@@ -159,7 +159,7 @@ class ND_Estimator:
     cv_sample is a list of "holdout" instances for cross-validation;
     each instance is a tuple of the form [in, out]_i.
     """
-    def __init__(self, train_samples_in, train_samples_out, cv_samples_in, cv_samples_out, test_samples_in, test_samples_out, degree = 20, dim = 6, dist_fn = L2_distance, kernel = RBF_kernel, nonparametric_estimation = fourier_coeffs_ND, bandwidths = [.15, .25]): # bandwidths = [.15, .25, .5, .75, 1., 1.25, 1.5]): TEMP!!!! # NOTE: bandwidths should be tried in increasing order.
+    def __init__(self, train_samples_in, train_samples_out, cv_samples_in, cv_samples_out, test_samples_in, test_samples_out, degree = 20, dim = 6, dist_fn = L2_distance, kernel = RBF_kernel, nonparametric_estimation = fourier_coeffs_ND, bandwidths = [.5, 1, 2, 5]): # bandwidths = [.15, .25, .5, .75, 1., 1.25, 1.5]): TEMP!!!! # NOTE: bandwidths should be tried in increasing order.
 
         self.degree = degree
         self.dim = dim
@@ -237,6 +237,9 @@ class ND_Estimator:
 
         normed_distances = np.array([self.dist_fn(f0, f) for f in self.X_hats]) / b
         k_sum = sum([self.kernel(d) for d in normed_distances])        
+        if (k_sum == 0): 
+            print ' >>> >>> [debug] WARNING: k_sum underflow detected'
+            k_sum = .00001
         weights = [self.kernel(normed_distances[i]) / k_sum for i in range(len(self.X_hats))]
 
         a = np.matrix.transpose(np.array(self.Y_hats))
@@ -275,11 +278,11 @@ class ND_Estimator:
         return Y0_coeffs
 
 def test_errs_3D(E, test_Xs, test_Ys):
-    test_X_hats = [E.nonparametric_estimation(sample, E.num_terms) for sample in test_Xs]
-    test_Y_hats = [E.nonparametric_estimation(sample, E.num_terms) for sample in test_Ys]
+    test_X_hats = [E.nonparametric_estimation(sample, E.degree, E.dim) for sample in test_Xs]
+    test_Y_hats = [E.nonparametric_estimation(sample, E.degree, E.dim) for sample in test_Ys]
     errs = []
     for i in range(len(test_X_hats)):
-        est_Y_hat = E.regress(test_X_hats[i])
+        est_Y_hat = E.full_regress(test_X_hats[i])
         err = E.dist_fn(test_Y_hats[i], est_Y_hat)
         errs.append(err)
     return errs
@@ -484,7 +487,7 @@ def bin_tests():
     print 'bindices:'
     print bindices
 
-    manager.count_particles_3D('sims/new_sim1_exact.txt', bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, num_bins, verbose=True)
+    manager.count_particles_3D('sims/new_sim1_approx.txt', bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, num_bins, verbose=True)
 
 #    assignments = manager.assign_particles_3D('sims/new_sim1_exact.txt', bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, num_bins, verbose=True)
 #    np.savetxt('assign.txt', [])
@@ -504,6 +507,25 @@ def my_writetxt(filename, data):
         f.write(outp)
     f.close()
 
+def Jhat_tests():
+
+    sample = np.loadtxt('ex_bin_18.txt')
+    print
+    print 'len sample:',len(sample)
+
+    samp = [sample]
+    for col in range(3):
+        samp = manager.scale_col_emp(samp, col)
+    samp = samp[0]
+    sample = np.column_stack((samp[:,0], samp[:,1], samp[:,2]))
+
+    dim = 3
+    for deg in range(10):
+        print
+        print 'deg:',deg,'Jhat:',J_hat_ND(sample, deg, dim)
+
+    exit(0) # TEMP
+
 def ID_tests():
 
     #num_bins = int(32768**(1./3))
@@ -522,9 +544,13 @@ def ID_tests():
     #ps = manager.load_bin_3D('sims/new_sim1_exact.txt', bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, verbose=True)
     #my_savetxt('ex_bin.txt', ps)
 
+    #ps = manager.load_bin_3D('sims/new_sim1_approx.txt', bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, verbose=True)
+    #my_writetxt('ex_bin_18_approx.txt', ps)
+    #exit(0) # TEMP
+
     # rescale 
 
-    new_num_bins = 10
+    new_num_bins = 50
 
     new_xmin, new_xmax = xmin + bindex[0]*binsz_x, xmin + (bindex[0] + 1)*binsz_x
     new_ymin, new_ymax = ymin + bindex[1]*binsz_y, ymin + (bindex[1] + 1)*binsz_y
@@ -548,12 +574,14 @@ def ID_tests():
 
     assignments = manager.assign_particles_3D('ex_bin_18.txt', new_bindices, new_xmin, new_ymin, new_zmin, new_binsz_x, new_binsz_y, new_binsz_z, new_num_bins, verbose=True)
     input_ps = []
-    for key in assignments:
+    assignments = manager.assign_particles_3D('ex_bin_18.txt', new_bindices, new_xmin, new_ymin, new_zmin, new_binsz_x, new_binsz_y, new_binsz_z, new_num_bins, verbose=True, chunk=10000)
+    for key in sorted(assignments.keys()):
         cur = assignments[key]
-        if len(cur) > 0: input_ps.append(cur)
+        if len(cur) >= 5: input_ps.append(cur)
 
     print
     print 'number of training instances available:', len(input_ps)
+    print 'avg. points/instance:', np.average([len(p) for p in input_ps])
 
     # run algorithm with some fraction of inputs
 
@@ -563,22 +591,119 @@ def ID_tests():
     # if desired: choose some subset of the training samples here. 
     # run following tests for different sizes
 
-    [train_samples, cv_samples, test_samples] = manager.partition_data(input_ps)
+    dim = 3
+    T = 3
+    partial_lengths = [10, 50, 100, 150, 200, 250]
+    errs = []
 
-    train_samples_in = train_samples
-    train_samples_out = train_samples
-    cv_samples_in = cv_samples
-    cv_samples_out = cv_samples
-    test_samples_in = test_samples
-    test_samples_out = test_samples
+    for length in partial_lengths:
+        
+        partial_input = input_ps[:length]
+        [train_samples, cv_samples, test_samples] = manager.partition_data(partial_input)
 
-    E = ND_Estimator(train_samples_in, train_samples_out, cv_samples_in, cv_samples_out, test_samples_in, test_samples_out, degree = T, dim = dim)
-    E.train(parallel=False)
+        train_samples_in = train_samples
+        train_samples_out = train_samples
+        cv_samples_in = cv_samples
+        cv_samples_out = cv_samples
+        test_samples_in = test_samples
+        test_samples_out = test_samples
 
-    # compute average test error on test samples
-    avg_err = np.average(test_errs_3D(E, test_samples_in, test_samples_out))
+        print 
+        print 'num training samples:', len(train_samples)
+        print 'num cv / test samples:', len(cv_samples)
+        
+        E = ND_Estimator(train_samples_in, train_samples_out, cv_samples_in, cv_samples_out, test_samples_in, test_samples_out, degree = T, dim = dim)
+        E.train(parallel=False)
+
+        # compute average test error on test samples
+        avg_err = np.average(test_errs_3D(E, test_samples_in, test_samples_out))
+        print
+        print 'average test error:', avg_err
+        errs.append(avg_err)
+
     print
-    print 'average test error:', avg_err
+    for i in range(len(partial_lengths)):
+        print 'data length:', partial_lengths[i],'avg. test error:',errs[i]
+
+def regression_tests():
+
+    num_bins = 18
+    bindex = [0, 0, 0]
+
+    (xmin, xmax) = constants.col_0_min_max
+    (ymin, ymax) = constants.col_1_min_max
+    (zmin, zmax) = constants.col_2_min_max
+
+    binsz_x = (xmax - xmin)/num_bins
+    binsz_y = (ymax - ymin)/num_bins
+    binsz_z = (zmax - zmin)/num_bins
+
+    new_num_bins = 50
+
+    new_xmin, new_xmax = xmin + bindex[0]*binsz_x, xmin + (bindex[0] + 1)*binsz_x
+    new_ymin, new_ymax = ymin + bindex[1]*binsz_y, ymin + (bindex[1] + 1)*binsz_y
+    new_zmin, new_zmax = zmin + bindex[2]*binsz_z, zmin + (bindex[2] + 1)*binsz_z
+
+    print
+    print 'new x range:',new_xmin,new_xmax
+    print 'new y range:',new_ymin,new_ymax
+    print 'new z range:',new_zmin,new_zmax
+
+    new_binsz_x = (new_xmax - new_xmin)/new_num_bins
+    new_binsz_y = (new_ymax - new_ymin)/new_num_bins
+    new_binsz_z = (new_zmax - new_zmin)/new_num_bins
+
+    print
+    print 'new binsz_x:',new_binsz_x
+    print 'new binsz_y:',new_binsz_y
+    print 'new binsz_z:',new_binsz_z
+
+    new_bindices = manager.bindices_3D(new_num_bins)    
+
+    inp_assignments = manager.assign_particles_3D('ex_bin_18.txt', new_bindices, new_xmin, new_ymin, new_zmin, new_binsz_x, new_binsz_y, new_binsz_z, new_num_bins, verbose=True, chunk=10000)
+    outp_assignments = manager.assign_particles_3D('ex_bin_18_approx.txt', new_bindices, new_xmin, new_ymin, new_zmin, new_binsz_x, new_binsz_y, new_binsz_z, new_num_bins, verbose=True, chunk=10000)
+    input_ps, output_ps = [], []
+
+    for key in sorted(inp_assignments.keys()):
+        cur_inp = inp_assignments[key]
+        cur_outp = outp_assignments[key]
+        if (len(cur_inp) >= 5 and len(cur_outp) >= 5): 
+            input_ps.append(cur_inp)
+            output_ps.append(cur_outp)
+
+    print
+    print 'number of training instances available:', len(input_ps)
+    print 'avg. points/instance:', np.average([len(p) for p in input_ps])
+
+    for i in range(3):
+        input_ps = manager.scale_col_emp(input_ps, i)
+        output_ps = manager.scale_col_emp(output_ps, i)
+
+    dim = 3
+    T = 5
+    partial_lengths = [10, 50, 100, 150, 200, 250, 300, 350]
+    errs = []
+
+    for length in partial_lengths:
+        
+        partial_input = input_ps[:length]
+        partial_output = output_ps[:length]
+        [train_samples_in, cv_samples_in, test_samples_in] = manager.partition_data(partial_input)
+        [train_samples_out, cv_samples_out, test_samples_out] = manager.partition_data(partial_output)
+
+        E = ND_Estimator(train_samples_in, train_samples_out, cv_samples_in, cv_samples_out, test_samples_in, test_samples_out, degree = T, dim = dim)
+        E.train(parallel=False)
+
+        # compute average test error on test samples
+        avg_err = np.average(test_errs_3D(E, test_samples_in, test_samples_out))
+        print
+        print 'average test error:', avg_err
+        errs.append(avg_err)
+
+    print
+    for i in range(len(partial_lengths)):
+        print 'data length:', partial_lengths[i],'avg. test error:',errs[i]
+
 
 def misc():
 
@@ -628,9 +753,11 @@ def tests():
     #KNN_tests_ND()
     #coeff_tests()
     #T_tests()
-    #bin_tests()
+    bin_tests()
     #misc()
-    ID_tests()
+    #Jhat_tests()
+    #ID_tests()
+    #regression_tests()
     #data_tests()
 
 def demo():
