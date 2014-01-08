@@ -277,6 +277,11 @@ class ND_Estimator:
             
         return Y0_coeffs
 
+"""
+Given an estimator E, input samples (test_Xs), and output samples (test_Ys),
+nonparametrically estimates the samples and performs the regression;
+returns the vector of errors.
+"""
 def test_errs_3D(E, test_Xs, test_Ys):
     test_X_hats = [E.nonparametric_estimation(sample, E.degree, E.dim) for sample in test_Xs]
     test_Y_hats = [E.nonparametric_estimation(sample, E.degree, E.dim) for sample in test_Ys]
@@ -287,16 +292,26 @@ def test_errs_3D(E, test_Xs, test_Ys):
         errs.append(err)
     return errs
 
-def KNN_tests_1D():
+"""
+KNN tests on 1D toy data.
+Creates M toy data instances (sample pairs) with eta samples per instance.
+It's reasonable to let eta be small, so the data creation and training stage will go faster; 
+the intention is just to measure regression speed as a function of T.
+
+Each experiment considers K nearest neighbors and nonparametric estimator degree T.
+An estimator is trained on the data; then regression is performed, both "full"
+(using all the training data) and "KNN" (using only the K nearest neighbors). 
+
+Note that only the speeds of the two regression strategies are measured. 
+The appropriateness of the K value for this data must be determined separately 
+via experiments with test error. 
+"""
+def KNN_tests_1D(M = 1000, eta = 1000, K = 5, Ts = range(1,21)):
 
     print ' >>> STARTING 1D KNN TESTS <<<'
     print
 
-    M, eta = 1000, 1000
-    K = 5
-    Ts = range(1, 21)
-
-    print ' >>> Making',M,'samples...'
+    print ' >>> Making', M, 'toy samples...'
     tD = toy.toyData(M = M, eta = eta)
     tD.make_samples()
 
@@ -317,7 +332,7 @@ def KNN_tests_1D():
     for T in Ts:
 
         print
-        print ' >>> T value:',T
+        print ' >>> T value:', T
         print ' >>> Training estimator... '
         start = time.clock()
         E = ONE_D_Estimator(train_data, cv_data, num_terms = T, dist_fn = L2_distance, kernel = RBF_kernel)
@@ -355,17 +370,28 @@ def KNN_tests_1D():
     print ' >>> KNN regress times:', KNN_regress_times
     print ' >>> Full regress times:', full_regress_times
 
-def KNN_tests_ND(dim=3):
+"""
+KNN tests on D-dimensional simulation or simulation-style data.
+Selects M data instances (sample pairs) with eta samples per instance. 
+It's reasonable to let eta be small, so the data extraction and training stage will go faster; 
+the intention is just to measure regression speed as a function of T.
+Data need not be contiguous or otherwise meaningful, since this is just a test of speed.
 
-    print ' >>> STARTING KNN TESTS IN',dim,'DIMS <<<'
+Each experiment considers K nearest neighbors and nonparametric estimator degree T.
+An estimator is trained on the data; then regression is performed, both "full"
+(using all the training data) and "KNN" (using only the K nearest neighbors). 
 
-    Ts = range(1, 11)
-    M, eta = 5000, 5000
-    K = 10
+Note that only the speeds of the two regression strategies are measured. 
+The appropriateness of the K value for this data must be determined separately 
+via experiments with test error. 
+"""
+def KNN_tests_ND(M = 5000, eta = 100, K = 10, Ts = range(1, 11), D = 3):
+
+    print ' >>> STARTING KNN TESTS IN', D, 'DIMS <<<'
 
     print
-    print ' >>> Extracting data with M =',M,' eta =',eta,' dim =',dim
-    data = manager.load_partial('sim1_exact.txt', M, dim, 15)
+    print ' >>> Extracting data with M =', M, ' eta =', eta, ' dim =', D
+    data = manager.load_partial('sims/new_sim1_exact.txt', M, D, eta)
 
     print
     print ' >>> Length of data:', len(data)
@@ -373,14 +399,13 @@ def KNN_tests_ND(dim=3):
     print ' >>> Dimensionality of each sample:',len(data[0][0])
 
     print 
+    print ' >>> Scaling data across,', D, 'axes...'
     print ' >>> Before scaling,'
     print ' >>> >>> min max col 0:', manager.col_min_max(data, 0)
-    print ' >>> >>> min max col 1:', manager.col_min_max(data, 1)
-    for i in range(dim):
+    for i in range(D):
         data = manager.scale_col_emp(data, i)
     print ' >>> After scaling,'
     print ' >>> >>> min max col 0:', manager.col_min_max(data, 0)
-    print ' >>> >>> min max col 1:', manager.col_min_max(data, 1)
 
     [train_samples, cv_samples, test_samples] = manager.partition_data(data)
     print
@@ -398,16 +423,13 @@ def KNN_tests_ND(dim=3):
     KNN_regress_times = []
     full_regress_times = []
 
-    # TEMP
-    print train_samples_in
-
     for T in Ts:
 
         print
         print ' >>> T value:',T
         print ' >>> Training estimator... '
         start = time.clock()
-        E = ND_Estimator(train_samples_in, train_samples_out, cv_samples_in, cv_samples_out, test_samples_in, test_samples_out, degree = T, dim = dim)
+        E = ND_Estimator(train_samples_in, train_samples_out, cv_samples_in, cv_samples_out, test_samples_in, test_samples_out, degree = T, dim = D)
         E.train(parallel=False)
         print ' >>> Train time:', time.clock() - start
 
@@ -421,7 +443,7 @@ def KNN_tests_ND(dim=3):
         start = time.clock()
         for i in range(len(test_samples)):
             X0_sample, Y0_sample = test_samples_in[i], test_samples_out[i]
-            X0_coeffs = fourier_coeffs_ND(X0_sample, degree=T, dim=dim)
+            X0_coeffs = fourier_coeffs_ND(X0_sample, degree=T, dim=D)
             'number of test coeffs:',len(X0_coeffs)
             Y0_coeffs = E.KNN_regress(X0_coeffs, k=K)
         KNN_regress_times.append(time.clock() - start)
@@ -431,7 +453,7 @@ def KNN_tests_ND(dim=3):
         start = time.clock()
         for i in range(len(test_samples)):            
             X0_sample, Y0_sample = test_samples_in[i], test_samples_out[i]
-            X0_coeffs = fourier_coeffs_ND(X0_sample, degree=T, dim=dim)
+            X0_coeffs = fourier_coeffs_ND(X0_sample, degree=T, dim=D)
             Y0_coeffs = E.full_regress(X0_coeffs)
         full_regress_times.append(time.clock() - start)
         print ' >>> Full regression time:', full_regress_times[-1]
@@ -467,7 +489,8 @@ def bin_tests():
 
     #num_bins = int(32768**(1./3))
     num_bins = 5
-    print 'num bins:',num_bins
+    print 'divisions per dimension:', num_bins
+    print 'total num bins:', num_bins**3
 
     (xmin, xmax) = constants.col_0_min_max
     (ymin, ymax) = constants.col_1_min_max
@@ -482,7 +505,7 @@ def bin_tests():
     print 'binsz_y:',binsz_y
     print 'binsz_z:',binsz_z
 
-    bindices = manager.bindices_3D(num_bins) #[:100] # TEMP: consider subset of bins
+    bindices = manager.bindices_3D(num_bins)
     print
     print 'bindices:'
     print bindices
@@ -746,10 +769,10 @@ def T_tests():
 
 def tests():
     #KNN_tests_1D()
-    #KNN_tests_ND()
+    KNN_tests_ND()
     #coeff_tests()
     #T_tests()
-    bin_tests()
+    #bin_tests()
     #misc()
     #Jhat_tests()
     #ID_tests()

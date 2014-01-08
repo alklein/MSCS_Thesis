@@ -146,7 +146,8 @@ def count_particles_3D(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, b
             next_cut = cur_cuts[index + 1]
           
             if (val >= cur_cuts[-1]): 
-                cur_bindex.append(2)
+                #cur_bindex.append(2)
+                cur_bindex.append(len(cur_cuts) - 1)
             else:
                 while ((index < len(cur_cuts) - 2) and (next_cut < val)):
                     index += 1
@@ -191,7 +192,8 @@ def assign_particles_3D(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, 
             next_cut = cur_cuts[index + 1]
           
             if (val >= cur_cuts[-1]): 
-                cur_bindex.append(2)
+                #cur_bindex.append(2)
+                cur_bindex.append(len(cur_cuts) - 1)
             else:
                 while ((index < len(cur_cuts) - 2) and (next_cut < val)):
                     index += 1
