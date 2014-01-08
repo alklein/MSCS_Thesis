@@ -103,13 +103,13 @@ def load_bin_3D(filename, bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, v
 
 """
 List of all bindices for 3D data partitioned 
-into num_bins along each axis
-(for a total of 3^{num_bins})
+into div_per_axis divisions along each axis
+(for a total of 3^{div_per_axis} bins)
 """
-def bindices_3D(num_bins):
-    return [[i, j, k] for i in range(num_bins)
-            for j in range(num_bins)
-            for k in range(num_bins)]
+def bindices_3D(div_per_axis):
+    return [[i, j, k] for i in range(div_per_axis)
+            for j in range(div_per_axis)
+            for k in range(div_per_axis)]
 
 """
 Maps bindices to their particle counts in 3D.
@@ -127,12 +127,7 @@ def count_particles_3D(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, b
     for line in open(filename):
 
         if ((count % 1000000 == 0) and (verbose)):
-            print 
-            print count/1000000,'million particles searched'
-            print 'current counts:'
-            for key in counts:
-                if counts[key] > 0:
-                    print key,'-',counts[key]
+            print ' >>>',count/1000000,'million particles searched'
         count += 1
 
         cur_p = [float(val) for val in line.split()]
@@ -155,6 +150,12 @@ def count_particles_3D(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, b
                 cur_bindex.append(index)
         if (str(cur_bindex) in counts):
             counts[str(cur_bindex)] += 1
+
+    print ' >>> final counts:'
+    for key in counts:
+        if counts[key] > 0:
+            print key,'-',counts[key]
+
 
 """
 Maps bindices to their particles in 3D.

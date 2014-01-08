@@ -465,9 +465,18 @@ def KNN_tests_ND(M = 5000, eta = 100, K = 10, Ts = range(1, 11), D = 3):
     print ' >>> Full regress times:', full_regress_times
     
 
-def coeff_tests():
-    mini_data = manager.load_floats('sims/sim1_approx_1000.txt')[:100]
-    degrees = range(6)
+"""
+Measures how long it takes to fit N 6D particles to degree deg.
+Makes plots in both standard and semilog scale.
+
+Must import pylab in order to make plots.
+"""
+def coeff_tests_6D(N = 100, max_deg = 6, show_now = False):
+
+    print ' >>> STARTING 6D COEFF TESTS <<<'
+
+    mini_data = manager.load_floats('sims/sim1_approx_1000.txt')[:N]
+    degrees = range(max_deg)
     times = []
     for deg in degrees:
         start = time.clock()
@@ -485,32 +494,44 @@ def coeff_tests():
     xlabel('Degree', fontsize=24)
     ylabel('Time to Compute Coefficients (s)', fontsize=24)
 
-def bin_tests():    
+    if show_now: show()
 
-    #num_bins = int(32768**(1./3))
-    num_bins = 5
-    print 'divisions per dimension:', num_bins
-    print 'total num bins:', num_bins**3
+"""
+Divides specified data into num_bins divisions along each axis. 
+Counts particles that lie in each of the resulting bins;
+prints out resulting density distribution. 
+
+For Hy's simulations (2^30 particles each), setting M = eta
+gives bins_per_axis = int(32768**(1./3)). 
+"""
+def density_tests(div_per_axis = 5, infile = 'sims/new_sim1_exact.txt'):    
+
+    print ' >>> STARTING DENSITY TESTS <<<'
+    print ' >>> infile:',infile
+
+    num_bins = div_per_axis**3
+    print ' >>> divisions per dimension:', div_per_axis
+    print ' >>> total num bins:', num_bins
 
     (xmin, xmax) = constants.col_0_min_max
     (ymin, ymax) = constants.col_1_min_max
     (zmin, zmax) = constants.col_2_min_max
 
-    binsz_x = (xmax - xmin)/num_bins
-    binsz_y = (ymax - ymin)/num_bins
-    binsz_z = (zmax - zmin)/num_bins
+    binsz_x = (xmax - xmin)/div_per_axis
+    binsz_y = (ymax - ymin)/div_per_axis
+    binsz_z = (zmax - zmin)/div_per_axis
 
     print
-    print 'binsz_x:',binsz_x
-    print 'binsz_y:',binsz_y
-    print 'binsz_z:',binsz_z
+    print ' >>> binsz_x:',binsz_x
+    print ' >>> binsz_y:',binsz_y
+    print ' >>> binsz_z:',binsz_z
 
-    bindices = manager.bindices_3D(num_bins)
+    bindices = manager.bindices_3D(div_per_axis)
     print
-    print 'bindices:'
-    print bindices
+    print ' >>> bindices:\t',bindices
+    print
 
-    manager.count_particles_3D('sims/new_sim1_approx.txt', bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, num_bins, verbose=True)
+    manager.count_particles_3D(infile, bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, div_per_axis, verbose=True)
 
 #    assignments = manager.assign_particles_3D('sims/new_sim1_exact.txt', bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, num_bins, verbose=True)
 #    np.savetxt('assign.txt', [])
@@ -762,17 +783,12 @@ def demo():
     B = neighbors.BallTree(data)
     show()
 
-# TODO: implement once binning can isolate actual contiguous
-# regions of simulation
-def T_tests():
-    pass
 
 def tests():
     #KNN_tests_1D()
-    KNN_tests_ND()
-    #coeff_tests()
-    #T_tests()
-    #bin_tests()
+    #KNN_tests_ND()
+    #coeff_tests_6D()
+    density_tests()
     #misc()
     #Jhat_tests()
     #ID_tests()
@@ -787,7 +803,7 @@ def demo():
     print 'max vx:',max(mini_data[:,3])
 
 """
-Runs demo.
+Runs any tests installed in tests(); runs demo().
 """
 if __name__ == '__main__':
 
