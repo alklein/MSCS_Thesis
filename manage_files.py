@@ -221,6 +221,7 @@ def save_assignments_3D(assignments, T, filename, xmin, xmax, ymin, ymax, zmin, 
         f.write(outp)
         f.close()
 
+
 """
 Returns empirical min and max values of an entire dataset
 along some axis (the specified column).
