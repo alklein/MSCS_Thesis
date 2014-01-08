@@ -609,7 +609,7 @@ def Jhat_tests(infile = 'ex_bin_18.txt', dim = 3, Ts = range(10)):
         print ' >>> >>> degree (T):', T, '\tJhat:', J_hat_ND(sample, T, dim)
 
 
-def ID_tests():
+def ID_demo():
 
     num_bins = 18
     bindex = [0, 0, 0]
@@ -700,7 +700,7 @@ def ID_tests():
     for i in range(len(partial_lengths)):
         print 'data length:', partial_lengths[i],'avg. test error:',errs[i]
 
-def regression_tests():
+def regression_demo():
 
     num_bins = 18
     bindex = [0, 0, 0]
@@ -780,69 +780,20 @@ def regression_tests():
         print 'data length:', partial_lengths[i],'avg. test error:',errs[i]
 
 
-def misc():
-
-    num_bins = int(32768**(1./3))
-    bindex = [0, 0, 0]
-    bindices = [bindex]
-
-    (xmin, xmax) = constants.col_0_min_max
-    (ymin, ymax) = constants.col_1_min_max
-    (zmin, zmax) = constants.col_2_min_max
-
-    binsz_x = (xmax - xmin)/num_bins
-    binsz_y = (ymax - ymin)/num_bins
-    binsz_z = (zmax - zmin)/num_bins
-
-    ass = manager.count_particles_3D('sims/new_sim1_exact.txt', bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, num_bins, verbose=True)
-
-def data_tests():
-
-    assignments = {}
-    assignments['[0, 0, 0]'] = [[1, 2, 3, 4, 5, 6], [3, 3, 3, 3, 3, 3], [4, 4, 4, 3, 3, 3]]
-    assignments['[0, 1, 1]'] = [[1, 2, 3, 4, 5, 6], [3, 3, 3, 3, 3, 3], [4, 4, 4, 3, 3, 2]]
-    assignments['[0, 2, 0]'] = [[1, 2, 3, 4, 5, 6], [3, 3, 3, 3, 3, 3], [2, 2, 2, 2, 2, 2]]
-    
-    xmin, xmax = 1., 6.
-    ymin, ymax = 1., 6.
-    zmin, zmax = 1., 6.
-
-    np.savetxt('assign.txt', [])
-    manager.save_assignments_3D(assignments, 3, 'assign.txt', xmin, xmax, ymin, ymax, zmin, zmax)
-    coeffs = np.loadtxt('assign.txt')
-    print coeffs
-
-def demo():
-
-    data = [[1, 2], [1, 3], [4, 5]]
-    B = neighbors.BallTree(data)
-    show()
-
-
 def tests():
     #KNN_tests_1D()
     #KNN_tests_ND()
     #coeff_tests_6D()
     #density_tests()
-
-    Jhat_tests()
-    #ID_tests()
-    #regression_tests()
-    #data_tests()
-
-    #misc()
+    #Jhat_tests()
+    pass
 
 def demo():
 
     isolate_particles()
+    ID_demo()
+    regression_demo()
 
-    """
-    mini_data = manager.load_floats('sims/sim1_approx_1000.txt')[:100]
-    print 'min x:',min(mini_data[:,0])
-    print 'max x:',max(mini_data[:,0])
-    print 'min vx:',min(mini_data[:,3])
-    print 'max vx:',max(mini_data[:,3])
-    """
 
 """
 Runs any tests installed in tests(); runs demo().
