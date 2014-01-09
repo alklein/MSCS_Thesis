@@ -277,6 +277,11 @@ class ND_Estimator:
             
         return Y0_coeffs
 
+"""
+Given an estimator E, input samples (test_Xs), and output samples (test_Ys),
+nonparametrically estimates the samples and performs the regression;
+returns the vector of errors.
+"""
 def test_errs_3D(E, test_Xs, test_Ys):
     test_X_hats = [E.nonparametric_estimation(sample, E.degree, E.dim) for sample in test_Xs]
     test_Y_hats = [E.nonparametric_estimation(sample, E.degree, E.dim) for sample in test_Ys]
@@ -287,16 +292,77 @@ def test_errs_3D(E, test_Xs, test_Ys):
         errs.append(err)
     return errs
 
-def KNN_tests_1D():
+"""
+Custom function, like numpy's savetxt(), to forcibly write data to file.
+"""
+def my_writetxt(filename, data):
+    np.savetxt(filename, [])
+    f = open(filename, 'r+')
+    for line in data:
+        outp = ''
+        for val in line:
+            outp += str(val) + ' '
+        outp += '\n'
+        f.write(outp)
+    f.close()
+
+"""
+Divides specified data into num_bins divisions along each axis. 
+Finds all particles in specified bin (defaults to bin nearest origin).
+Saves those particles to outfile.
+
+For Hy's simulations (2^30 particles each), setting M = eta
+gives bins_per_axis = int(32768**(1./3)). 
+"""
+def isolate_particles(div_per_axis = 18, bindex = [0, 0, 0], infile = 'sims/new_sim1_exact.txt', outfile = None):    
+
+    if (not outfile): outfile = 'innermost_bin_' + str(div_per_axis) + '.txt'
+
+    print ' >>> STARTING PARTICLE ISOLATION <<<'
+    print ' >>> infile:',infile
+    print ' >>> outfile:',outfile
+
+    num_bins = div_per_axis**3
+    print ' >>> divisions per dimension:', div_per_axis
+    print ' >>> total num bins:', num_bins
+
+    (xmin, xmax) = constants.col_0_min_max
+    (ymin, ymax) = constants.col_1_min_max
+    (zmin, zmax) = constants.col_2_min_max
+
+    binsz_x = (xmax - xmin)/div_per_axis
+    binsz_y = (ymax - ymin)/div_per_axis
+    binsz_z = (zmax - zmin)/div_per_axis
+
+    print
+    print ' >>> binsz_x:',binsz_x
+    print ' >>> binsz_y:',binsz_y
+    print ' >>> binsz_z:',binsz_z
+
+    ps = manager.load_bin_3D(infile, bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, verbose=True)
+    my_writetxt(outfile, ps)
+
+
+"""
+KNN tests on 1D toy data.
+Creates M toy data instances (sample pairs) with eta samples per instance.
+It's reasonable to let eta be small, so the data creation and training stage will go faster; 
+the intention is just to measure regression speed as a function of T.
+
+Each experiment considers K nearest neighbors and nonparametric estimator degree T.
+An estimator is trained on the data; then regression is performed, both "full"
+(using all the training data) and "KNN" (using only the K nearest neighbors). 
+
+Note that only the speeds of the two regression strategies are measured. 
+The appropriateness of the K value for this data must be determined separately 
+via experiments with test error. 
+"""
+def KNN_tests_1D(M = 1000, eta = 1000, K = 5, Ts = range(1,21)):
 
     print ' >>> STARTING 1D KNN TESTS <<<'
     print
 
-    M, eta = 1000, 1000
-    K = 5
-    Ts = range(1, 21)
-
-    print ' >>> Making',M,'samples...'
+    print ' >>> Making', M, 'toy samples...'
     tD = toy.toyData(M = M, eta = eta)
     tD.make_samples()
 
@@ -317,7 +383,7 @@ def KNN_tests_1D():
     for T in Ts:
 
         print
-        print ' >>> T value:',T
+        print ' >>> T value:', T
         print ' >>> Training estimator... '
         start = time.clock()
         E = ONE_D_Estimator(train_data, cv_data, num_terms = T, dist_fn = L2_distance, kernel = RBF_kernel)
@@ -355,17 +421,28 @@ def KNN_tests_1D():
     print ' >>> KNN regress times:', KNN_regress_times
     print ' >>> Full regress times:', full_regress_times
 
-def KNN_tests_ND(dim=3):
+"""
+KNN tests on D-dimensional simulation or simulation-style data.
+Selects M data instances (sample pairs) with eta samples per instance. 
+It's reasonable to let eta be small, so the data extraction and training stage will go faster; 
+the intention is just to measure regression speed as a function of T.
+Data need not be contiguous or otherwise meaningful, since this is just a test of speed.
 
-    print ' >>> STARTING KNN TESTS IN',dim,'DIMS <<<'
+Each experiment considers K nearest neighbors and nonparametric estimator degree T.
+An estimator is trained on the data; then regression is performed, both "full"
+(using all the training data) and "KNN" (using only the K nearest neighbors). 
 
-    Ts = range(1, 11)
-    M, eta = 5000, 5000
-    K = 10
+Note that only the speeds of the two regression strategies are measured. 
+The appropriateness of the K value for this data must be determined separately 
+via experiments with test error. 
+"""
+def KNN_tests_ND(M = 5000, eta = 100, K = 10, Ts = range(1, 11), D = 3):
+
+    print ' >>> STARTING KNN TESTS IN', D, 'DIMS <<<'
 
     print
-    print ' >>> Extracting data with M =',M,' eta =',eta,' dim =',dim
-    data = manager.load_partial('sim1_exact.txt', M, dim, 15)
+    print ' >>> Extracting data with M =', M, ' eta =', eta, ' dim =', D
+    data = manager.load_partial('sims/new_sim1_exact.txt', M, D, eta)
 
     print
     print ' >>> Length of data:', len(data)
@@ -373,14 +450,13 @@ def KNN_tests_ND(dim=3):
     print ' >>> Dimensionality of each sample:',len(data[0][0])
 
     print 
+    print ' >>> Scaling data across,', D, 'axes...'
     print ' >>> Before scaling,'
     print ' >>> >>> min max col 0:', manager.col_min_max(data, 0)
-    print ' >>> >>> min max col 1:', manager.col_min_max(data, 1)
-    for i in range(dim):
+    for i in range(D):
         data = manager.scale_col_emp(data, i)
     print ' >>> After scaling,'
     print ' >>> >>> min max col 0:', manager.col_min_max(data, 0)
-    print ' >>> >>> min max col 1:', manager.col_min_max(data, 1)
 
     [train_samples, cv_samples, test_samples] = manager.partition_data(data)
     print
@@ -398,16 +474,13 @@ def KNN_tests_ND(dim=3):
     KNN_regress_times = []
     full_regress_times = []
 
-    # TEMP
-    print train_samples_in
-
     for T in Ts:
 
         print
         print ' >>> T value:',T
         print ' >>> Training estimator... '
         start = time.clock()
-        E = ND_Estimator(train_samples_in, train_samples_out, cv_samples_in, cv_samples_out, test_samples_in, test_samples_out, degree = T, dim = dim)
+        E = ND_Estimator(train_samples_in, train_samples_out, cv_samples_in, cv_samples_out, test_samples_in, test_samples_out, degree = T, dim = D)
         E.train(parallel=False)
         print ' >>> Train time:', time.clock() - start
 
@@ -421,7 +494,7 @@ def KNN_tests_ND(dim=3):
         start = time.clock()
         for i in range(len(test_samples)):
             X0_sample, Y0_sample = test_samples_in[i], test_samples_out[i]
-            X0_coeffs = fourier_coeffs_ND(X0_sample, degree=T, dim=dim)
+            X0_coeffs = fourier_coeffs_ND(X0_sample, degree=T, dim=D)
             'number of test coeffs:',len(X0_coeffs)
             Y0_coeffs = E.KNN_regress(X0_coeffs, k=K)
         KNN_regress_times.append(time.clock() - start)
@@ -431,7 +504,7 @@ def KNN_tests_ND(dim=3):
         start = time.clock()
         for i in range(len(test_samples)):            
             X0_sample, Y0_sample = test_samples_in[i], test_samples_out[i]
-            X0_coeffs = fourier_coeffs_ND(X0_sample, degree=T, dim=dim)
+            X0_coeffs = fourier_coeffs_ND(X0_sample, degree=T, dim=D)
             Y0_coeffs = E.full_regress(X0_coeffs)
         full_regress_times.append(time.clock() - start)
         print ' >>> Full regression time:', full_regress_times[-1]
@@ -443,9 +516,18 @@ def KNN_tests_ND(dim=3):
     print ' >>> Full regress times:', full_regress_times
     
 
-def coeff_tests():
-    mini_data = manager.load_floats('sims/sim1_approx_1000.txt')[:100]
-    degrees = range(6)
+"""
+Measures how long it takes to fit N 6D particles to degree deg.
+Makes plots in both standard and semilog scale.
+
+Must import pylab in order to make plots.
+"""
+def coeff_tests_6D(N = 100, max_deg = 6, show_now = False):
+
+    print ' >>> STARTING 6D COEFF TESTS <<<'
+
+    mini_data = manager.load_floats('sims/sim1_approx_1000.txt')[:N]
+    degrees = range(max_deg)
     times = []
     for deg in degrees:
         start = time.clock()
@@ -463,55 +545,58 @@ def coeff_tests():
     xlabel('Degree', fontsize=24)
     ylabel('Time to Compute Coefficients (s)', fontsize=24)
 
-def bin_tests():    
+    if show_now: show()
 
-    #num_bins = int(32768**(1./3))
-    num_bins = 5
-    print 'num bins:',num_bins
+"""
+Divides specified data into num_bins divisions along each axis. 
+Counts particles that lie in each of the resulting bins;
+prints out resulting density distribution. 
+
+For Hy's simulations (2^30 particles each), setting M = eta
+gives bins_per_axis = int(32768**(1./3)). 
+"""
+def density_tests(div_per_axis = 5, infile = 'sims/new_sim1_exact.txt'):    
+
+    print ' >>> STARTING DENSITY TESTS <<<'
+    print ' >>> infile:',infile
+
+    num_bins = div_per_axis**3
+    print ' >>> divisions per dimension:', div_per_axis
+    print ' >>> total num bins:', num_bins
 
     (xmin, xmax) = constants.col_0_min_max
     (ymin, ymax) = constants.col_1_min_max
     (zmin, zmax) = constants.col_2_min_max
 
-    binsz_x = (xmax - xmin)/num_bins
-    binsz_y = (ymax - ymin)/num_bins
-    binsz_z = (zmax - zmin)/num_bins
+    binsz_x = (xmax - xmin)/div_per_axis
+    binsz_y = (ymax - ymin)/div_per_axis
+    binsz_z = (zmax - zmin)/div_per_axis
 
     print
-    print 'binsz_x:',binsz_x
-    print 'binsz_y:',binsz_y
-    print 'binsz_z:',binsz_z
+    print ' >>> binsz_x:',binsz_x
+    print ' >>> binsz_y:',binsz_y
+    print ' >>> binsz_z:',binsz_z
 
-    bindices = manager.bindices_3D(num_bins) #[:100] # TEMP: consider subset of bins
+    bindices = manager.bindices_3D(div_per_axis)
     print
-    print 'bindices:'
-    print bindices
-
-    manager.count_particles_3D('sims/new_sim1_approx.txt', bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, num_bins, verbose=True)
-
-#    assignments = manager.assign_particles_3D('sims/new_sim1_exact.txt', bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, num_bins, verbose=True)
-#    np.savetxt('assign.txt', [])
-#    manager.save_assignments_3D(assignments, 5, 'assign.txt', xmin, xmax, ymin, ymax, zmin, zmax)    
-
-    #bindex = [0, 0, 0]
-    #ps = manager.load_bin_3D('sims/sim1_exact.txt', bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, verbose=True)
-
-def my_writetxt(filename, data):
-    np.savetxt(filename, [])
-    f = open(filename, 'r+')
-    for line in data:
-        outp = ''
-        for val in line:
-            outp += str(val) + ' '
-        outp += '\n'
-        f.write(outp)
-    f.close()
-
-def Jhat_tests():
-
-    sample = np.loadtxt('ex_bin_18.txt')
+    print ' >>> bindices:\t',bindices
     print
-    print 'len sample:',len(sample)
+
+    manager.count_particles_3D(infile, bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, div_per_axis, verbose=True)
+
+"""
+Empirically computes Jhat of specified data, for specified dimension
+(i.e. considering the first dim axes), for various values of 
+the nonparametric estimator degree T.
+"""
+def Jhat_tests(infile = 'ex_bin_18.txt', dim = 3, Ts = range(10)):
+
+    print ' >>> STARTING JHAT TESTS <<<'
+
+    sample = np.loadtxt(infile)
+    print
+    print ' >>> infile:', infile
+    print ' >>> len sample:', len(sample)
 
     samp = [sample]
     for col in range(3):
@@ -519,16 +604,13 @@ def Jhat_tests():
     samp = samp[0]
     sample = np.column_stack((samp[:,0], samp[:,1], samp[:,2]))
 
-    dim = 3
-    for deg in range(10):
+    for T in Ts:
         print
-        print 'deg:',deg,'Jhat:',J_hat_ND(sample, deg, dim)
+        print ' >>> >>> degree (T):', T, '\tJhat:', J_hat_ND(sample, T, dim)
 
-    exit(0) # TEMP
 
 def ID_tests():
 
-    #num_bins = int(32768**(1./3))
     num_bins = 18
     bindex = [0, 0, 0]
 
@@ -539,14 +621,6 @@ def ID_tests():
     binsz_x = (xmax - xmin)/num_bins
     binsz_y = (ymax - ymin)/num_bins
     binsz_z = (zmax - zmin)/num_bins
-
-    # isolate cube; put in file
-    #ps = manager.load_bin_3D('sims/new_sim1_exact.txt', bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, verbose=True)
-    #my_savetxt('ex_bin.txt', ps)
-
-    #ps = manager.load_bin_3D('sims/new_sim1_approx.txt', bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, verbose=True)
-    #my_writetxt('ex_bin_18_approx.txt', ps)
-    #exit(0) # TEMP
 
     # rescale 
 
@@ -743,39 +817,39 @@ def demo():
     B = neighbors.BallTree(data)
     show()
 
-# TODO: implement once binning can isolate actual contiguous
-# regions of simulation
-def T_tests():
-    pass
 
 def tests():
     #KNN_tests_1D()
     #KNN_tests_ND()
-    #coeff_tests()
-    #T_tests()
-    bin_tests()
-    #misc()
-    #Jhat_tests()
+    #coeff_tests_6D()
+    #density_tests()
+
+    Jhat_tests()
     #ID_tests()
     #regression_tests()
     #data_tests()
 
+    #misc()
+
 def demo():
+
+    isolate_particles()
+
+    """
     mini_data = manager.load_floats('sims/sim1_approx_1000.txt')[:100]
     print 'min x:',min(mini_data[:,0])
     print 'max x:',max(mini_data[:,0])
     print 'min vx:',min(mini_data[:,3])
     print 'max vx:',max(mini_data[:,3])
+    """
 
 """
-Runs demo.
+Runs any tests installed in tests(); runs demo().
 """
 if __name__ == '__main__':
 
-    print
-    print ' > RUNNING TESTS'
+    print '\n > RUNNING TESTS \n'
     tests()
 
-    print
-    print ' > RUNNING DEMO'
+    print '\n > RUNNING DEMO \n'
     demo()
