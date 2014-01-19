@@ -91,13 +91,8 @@ def load_bin_3D(filename, bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, v
 
         cur_p = [float(val) for val in line.split()]
         x, y, z = cur_p[0], cur_p[1], cur_p[2]
-#        if ((inner_x < x <= outer_x) \
-#                and (inner_y < y <= outer_y) \
-#                and (inner_z < z <= outer_z)):
-        if ((inner_x < x) and (x <= outer_x) and (inner_y < y) and (y <= outer_y) and (inner_z < z) and (z <= outer_z)): #and (inner_z < z) and (z <= outer_z)):
-            #if (verbose): print ' --- FOUND PARTICLE IN RANGE:',cur_p
+        if ((inner_x < x) and (x <= outer_x) and (inner_y < y) and (y <= outer_y) and (inner_z < z) and (z <= outer_z)): 
             ps.append(cur_p)
-        #if (count/1000000 > 20): return np.array(ps) # TEMP
     
     return np.array(ps)
 
@@ -126,7 +121,7 @@ def count_particles_3D(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, b
     count = 0
     for line in open(filename):
 
-        if ((count % 1000000 == 0) and (verbose)):
+        if ((count % 10000000 == 0) and (verbose)):
             print ' >>>',count/1000000,'million particles searched'
         count += 1
 
@@ -141,7 +136,6 @@ def count_particles_3D(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, b
             next_cut = cur_cuts[index + 1]
           
             if (val >= cur_cuts[-1]): 
-                #cur_bindex.append(2)
                 cur_bindex.append(len(cur_cuts) - 1)
             else:
                 while ((index < len(cur_cuts) - 2) and (next_cut < val)):
@@ -178,8 +172,6 @@ def assign_particles_3D(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, 
             print 'current assignments:'
             for key in assignments:
                 pass
-            #if len(assignments[key]) > 0:
-            #        print key,'-',assignments[key]
         count += 1
 
         cur_p = [float(val) for val in line.split()]
@@ -193,7 +185,6 @@ def assign_particles_3D(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, 
             next_cut = cur_cuts[index + 1]
           
             if (val >= cur_cuts[-1]): 
-                #cur_bindex.append(2)
                 cur_bindex.append(len(cur_cuts) - 1)
             else:
                 while ((index < len(cur_cuts) - 2) and (next_cut < val)):
@@ -313,53 +304,53 @@ def make_mini(infile, outfile, count):
         i += 1
     np.savetxt(outfile, np.array(data))
 
-def make_mini_files():
+def make_mini_files(parent_sim_exact, parent_sim_approx):
     print '\nMAKING MINI SIM FILES'
 
     print '\n --- sim1_exact_1000'
-    make_mini('sim1_exact.txt', 'sim1_exact_1000.txt', 1000)
+    make_mini(parent_sim_exact, 'sim1_exact_1000.txt', 1000)
     print ' --- > length:',length('sim1_exact_1000.txt') 
     
     print '\n --- sim1_exact_10000'
-    make_mini('sim1_exact.txt', 'sim1_exact_10000.txt', 10000)
+    make_mini(parent_sim_exact, 'sim1_exact_10000.txt', 10000)
     print ' --- > length:',length('sim1_exact_10000.txt') 
     
     print '\n --- sim1_exact_100000'
-    make_mini('sim1_exact.txt', 'sim1_exact_100000.txt', 100000)
+    make_mini(parent_sim_exact, 'sim1_exact_100000.txt', 100000)
     print ' --- > length:',length('sim1_exact_100000.txt') 
     
     print '\n --- sim1_exact_1000000'
-    make_mini('sim1_exact.txt', 'sim1_exact_1000000.txt', 1000000)
+    make_mini(parent_sim_exact, 'sim1_exact_1000000.txt', 1000000)
     print ' --- > length:',length('sim1_exact_1000000.txt') 
     
     print '\n --- sim1_exact_10000000'
-    make_mini('sim1_exact.txt', 'sim1_exact_10000000.txt', 10000000)
+    make_mini(parent_sim_exact, 'sim1_exact_10000000.txt', 10000000)
     print ' --- > length:',length('sim1_exact_10000000.txt') 
 
     print '\n --------------- '
     
     print '\n --- sim1_approx_1000'
-    make_mini('sim1_approx.txt', 'sim1_approx_1000.txt', 1000)
+    make_mini(parent_sim_approx, 'sim1_approx_1000.txt', 1000)
     print ' --- > length:',length('sim1_approx_1000.txt') 
     
     print '\n --- sim1_approx_10000'
-    make_mini('sim1_approx.txt', 'sim1_approx_10000.txt', 10000)
+    make_mini(parent_sim_approx, 'sim1_approx_10000.txt', 10000)
     print ' --- > length:',length('sim1_approx_10000.txt') 
     
     print '\n --- sim1_approx_100000'
-    make_mini('sim1_approx.txt', 'sim1_approx_100000.txt', 100000)
+    make_mini(parent_sim_approx, 'sim1_approx_100000.txt', 100000)
     print ' --- > length:',length('sim1_approx_100000.txt') 
 
     print '\n --- sim1_approx_1000000'
-    make_mini('sim1_approx.txt', 'sim1_approx_1000000.txt', 1000000)
+    make_mini(parent_sim_approx, 'sim1_approx_1000000.txt', 1000000)
     print ' --- > length:',length('sim1_approx_1000000.txt') 
 
     print '\n --- sim1_approx_10000000'
-    make_mini('sim1_approx.txt', 'sim1_approx_10000000.txt', 10000000)
+    make_mini(parent_sim_approx, 'sim1_approx_10000000.txt', 10000000)
     print ' --- > length:',length('sim1_approx_10000000.txt') 
 
 
 if __name__ == '__main__':
-    print 'length of sim1_exact.txt:', length('sims/sim1_exact.txt')
-    #make_mini_files()
+    #print 'length of new_sim1_exact.txt:', length('sims/new_sim1_exact.txt')
+    make_mini_files(parent_sim_exact = 'sims/new_sim1_exact.txt', parent_sim_approx = 'sims/new_sim1_approx.txt')
 

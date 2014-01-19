@@ -307,43 +307,6 @@ def my_writetxt(filename, data):
     f.close()
 
 """
-Divides specified data into num_bins divisions along each axis. 
-Finds all particles in specified bin (defaults to bin nearest origin).
-Saves those particles to outfile.
-
-For Hy's simulations (2^30 particles each), setting M = eta
-gives bins_per_axis = int(32768**(1./3)). 
-"""
-def isolate_particles(div_per_axis = 18, bindex = [0, 0, 0], infile = 'sims/new_sim1_exact.txt', outfile = None):    
-
-    if (not outfile): outfile = 'innermost_bin_' + str(div_per_axis) + '.txt'
-
-    print ' >>> STARTING PARTICLE ISOLATION <<<'
-    print ' >>> infile:',infile
-    print ' >>> outfile:',outfile
-
-    num_bins = div_per_axis**3
-    print ' >>> divisions per dimension:', div_per_axis
-    print ' >>> total num bins:', num_bins
-
-    (xmin, xmax) = constants.col_0_min_max
-    (ymin, ymax) = constants.col_1_min_max
-    (zmin, zmax) = constants.col_2_min_max
-
-    binsz_x = (xmax - xmin)/div_per_axis
-    binsz_y = (ymax - ymin)/div_per_axis
-    binsz_z = (zmax - zmin)/div_per_axis
-
-    print
-    print ' >>> binsz_x:',binsz_x
-    print ' >>> binsz_y:',binsz_y
-    print ' >>> binsz_z:',binsz_z
-
-    ps = manager.load_bin_3D(infile, bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, verbose=True)
-    my_writetxt(outfile, ps)
-
-
-"""
 KNN tests on 1D toy data.
 Creates M toy data instances (sample pairs) with eta samples per instance.
 It's reasonable to let eta be small, so the data creation and training stage will go faster; 
@@ -608,7 +571,46 @@ def Jhat_tests(infile = 'ex_bin_18.txt', dim = 3, Ts = range(10)):
         print
         print ' >>> >>> degree (T):', T, '\tJhat:', J_hat_ND(sample, T, dim)
 
+"""
+Divides specified data into num_bins divisions along each axis. 
+Finds all particles in specified bin (defaults to bin nearest origin).
+Saves those particles to outfile.
 
+For Hy's simulations (2^30 particles each), setting M = eta
+gives bins_per_axis = int(32768**(1./3)). 
+"""
+def isolate_particles(div_per_axis = 18, bindex = [0, 0, 0], infile = 'sims/new_sim1_exact.txt', outfile = None):    
+
+    if (not outfile): outfile = 'innermost_bin_' + str(div_per_axis) + '.txt'
+
+    print ' >>> STARTING PARTICLE ISOLATION <<<'
+    print ' >>> infile:',infile
+    print ' >>> outfile:',outfile
+
+    num_bins = div_per_axis**3
+    print ' >>> divisions per dimension:', div_per_axis
+    print ' >>> total num bins:', num_bins
+
+    (xmin, xmax) = constants.col_0_min_max
+    (ymin, ymax) = constants.col_1_min_max
+    (zmin, zmax) = constants.col_2_min_max
+
+    binsz_x = (xmax - xmin)/div_per_axis
+    binsz_y = (ymax - ymin)/div_per_axis
+    binsz_z = (zmax - zmin)/div_per_axis
+
+    print
+    print ' >>> binsz_x:',binsz_x
+    print ' >>> binsz_y:',binsz_y
+    print ' >>> binsz_z:',binsz_z
+
+    ps = manager.load_bin_3D(infile, bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, verbose=True)
+    my_writetxt(outfile, ps)
+
+
+"""
+Preliminary demonstration of how to learn the identity distribution on simulation data. 
+"""
 def ID_demo():
 
     num_bins = 18
@@ -621,8 +623,6 @@ def ID_demo():
     binsz_x = (xmax - xmin)/num_bins
     binsz_y = (ymax - ymin)/num_bins
     binsz_z = (zmax - zmin)/num_bins
-
-    #isolate_particles(div_per_axis = 18, bindex = [0, 0, 0], infile = 'sims/new_sim1_exact.txt', outfile = 'ex_bin_18_exact.txt')
 
     # rescale 
 
@@ -700,6 +700,9 @@ def ID_demo():
     for i in range(len(partial_lengths)):
         print 'data length:', partial_lengths[i],'avg. test error:',errs[i]
 
+"""
+Preliminary demonstration of how to perform regression on simulation data.
+"""
 def regression_demo():
 
     num_bins = 18
@@ -784,16 +787,16 @@ def tests():
     #KNN_tests_1D()
     #KNN_tests_ND()
     #coeff_tests_6D()
-    #density_tests()
+    density_tests(infile = 'sims/new_sim1_approx.txt')
     #Jhat_tests()
     pass
 
 def demo():
 
-    isolate_particles()
-    ID_demo()
-    regression_demo()
-
+    #isolate_particles()
+    #ID_demo()
+    #regression_demo()
+    pass
 
 """
 Runs any tests installed in tests(); runs demo().
