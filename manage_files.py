@@ -18,14 +18,32 @@ import numpy as np
 from random import *
 from math_helpers import *
 
+"""
+Returns "raw" values in file called filename (values left as strings)
+"""
 def raw_load(filename):
     return np.array([line.split() for line in open(filename)])
 
+"""
+Returns values in file called filename as array of arrays of floats
+"""
 def load_floats(filename):
     result = []
     for line in open(filename):
         result.append([float(val) for val in line.split()])
     return np.array(result)
+
+"""
+Parses and prints first how_many lines of file called filename
+"""
+def peek_floats(filename, how_many):
+    print '\nPeeking at',filename,'\n'
+    count = 1
+    for line in open(filename):
+        print([float(val) for val in line.split()])
+        if (count >= how_many): return
+        else: count += 1
+    return 
 
 """
 straight loading function (no sorting of particles; 
@@ -150,7 +168,6 @@ def count_particles_3D(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, b
         if counts[key] > 0:
             print key,'-',counts[key]
 
-
 """
 Maps bindices to their particles in 3D.
 """
@@ -194,9 +211,11 @@ def assign_particles_3D(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, 
         if (str(cur_bindex) in assignments):
             assignments[str(cur_bindex)].append(cur_p)
 
-    return assignments
-                
+    return assignments                
 
+"""
+Saves assignment dictionary to file.
+"""
 def save_assignments_3D(assignments, T, filename, xmin, xmax, ymin, ymax, zmin, zmax):
     for bindex in assignments:
         print
@@ -227,9 +246,12 @@ def global_min_max(filename, col, verbose=False):
         count += 1
     return (min(vals), max(vals))
 
-# data should be list of 6D samples,
-# where each sample is of the form
-# [x, y, z, vx, vy, vz]
+"""
+Returns min and max position and velocity values.
+
+Note: data should be list of 6D samples,
+where each sample is of the form [x, y, z, vx, vy, vz]
+"""
 def emp_bounds_6D(data): 
     xs, ys, zs = data[:,0], data[:,1], data[:,2]
     vxs, vys, vzs = data[:,3], data[:,4], data[:,5]
@@ -239,7 +261,9 @@ def emp_bounds_6D(data):
     max_vel = max([max(vxs), max(vys), max(vzs)])
     return [min_pos, max_pos, min_vel, max_vel]
 
-
+"""
+Returns (min, max) values in column col of data.
+"""
 def col_min_max(data, col):
     data_col = []
     for sample in data:
@@ -250,6 +274,11 @@ def col_min_max(data, col):
     mn, mx = min(data_col), max(data_col)
     return (mn, mx)
 
+"""
+"Empirically" scales data along axis col 
+by measuring the min and max values in that
+column and then re-scaling to a (0, 1) range.
+"""
 def scale_col_emp(data, col):
     (mn, mx) = col_min_max(data, col)
 
@@ -263,22 +292,6 @@ def scale_col_emp(data, col):
 
     return data
 
-# TODO: implement
-"""
-def load_floats_scaled(filename, [xmin, xmax, vmin, vmax]):
-
-    def sc_pos(x):
-        return float(x) * (xmax - xmin) - xmin
-
-    def sc_vel(v):
-        return float(v) * (vmax - vmin) - vmin
-    result = []
-    for line in open(filename):
-        [x, y, z, vx, vy, vz] = line.split()
-        result.append([sc_pos(x), sc_pos(y), sc_pos(z), sc_vel(vx), sc_vel(vy), sc_vel(vz)])
-    return np.array(result)
-"""
-
 """
 Partitions data according to specified holdout fraction.
 """
@@ -289,12 +302,18 @@ def partition_data(data, holdout_frac=.1):
     train_samples = data[2*holdout_sz : ]
     return [train_samples, cv_samples, test_samples]
 
+"""
+Returns number of lines in file called filename.
+"""
 def length(filename):
     i = 0
     for line in open(filename):
         i += 1
     return i
 
+"""
+Saves first count lines of file called infile as outfile.
+"""
 def make_mini(infile, outfile, count):
     i = 0
     data = []
@@ -351,6 +370,5 @@ def make_mini_files(parent_sim_exact, parent_sim_approx):
 
 
 if __name__ == '__main__':
-    #print 'length of new_sim1_exact.txt:', length('sims/new_sim1_exact.txt')
     make_mini_files(parent_sim_exact = 'sims/new_sim1_exact.txt', parent_sim_approx = 'sims/new_sim1_approx.txt')
 
