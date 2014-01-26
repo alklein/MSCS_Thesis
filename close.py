@@ -16,7 +16,7 @@ import math
 import itertools
 import numpy as np
 
-from pylab import *
+#from pylab import *
 from random import *
 
 """ Custom Imports """
