@@ -307,43 +307,6 @@ def my_writetxt(filename, data):
     f.close()
 
 """
-Divides specified data into num_bins divisions along each axis. 
-Finds all particles in specified bin (defaults to bin nearest origin).
-Saves those particles to outfile.
-
-For Hy's simulations (2^30 particles each), setting M = eta
-gives bins_per_axis = int(32768**(1./3)). 
-"""
-def isolate_particles(div_per_axis = 18, bindex = [0, 0, 0], infile = 'sims/new_sim1_exact.txt', outfile = None):    
-
-    if (not outfile): outfile = 'innermost_bin_' + str(div_per_axis) + '.txt'
-
-    print ' >>> STARTING PARTICLE ISOLATION <<<'
-    print ' >>> infile:',infile
-    print ' >>> outfile:',outfile
-
-    num_bins = div_per_axis**3
-    print ' >>> divisions per dimension:', div_per_axis
-    print ' >>> total num bins:', num_bins
-
-    (xmin, xmax) = constants.col_0_min_max
-    (ymin, ymax) = constants.col_1_min_max
-    (zmin, zmax) = constants.col_2_min_max
-
-    binsz_x = (xmax - xmin)/div_per_axis
-    binsz_y = (ymax - ymin)/div_per_axis
-    binsz_z = (zmax - zmin)/div_per_axis
-
-    print
-    print ' >>> binsz_x:',binsz_x
-    print ' >>> binsz_y:',binsz_y
-    print ' >>> binsz_z:',binsz_z
-
-    ps = manager.load_bin_3D(infile, bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, verbose=True)
-    my_writetxt(outfile, ps)
-
-
-"""
 KNN tests on 1D toy data.
 Creates M toy data instances (sample pairs) with eta samples per instance.
 It's reasonable to let eta be small, so the data creation and training stage will go faster; 
@@ -608,8 +571,49 @@ def Jhat_tests(infile = 'ex_bin_18.txt', dim = 3, Ts = range(10)):
         print
         print ' >>> >>> degree (T):', T, '\tJhat:', J_hat_ND(sample, T, dim)
 
+"""
+Divides specified data into num_bins divisions along each axis. 
+Finds all particles in specified bin (defaults to bin nearest origin).
+Saves those particles to outfile.
 
-def ID_tests():
+For Hy's simulations (2^30 particles each), setting M = eta
+gives bins_per_axis = int(32768**(1./3)). 
+"""
+def isolate_particles(div_per_axis = 18, bindex = [0, 0, 0], infile = 'sims/new_sim1_exact.txt', outfile = None):    
+
+    if (not outfile): outfile = 'innermost_bin_' + str(div_per_axis) + '.txt'
+
+    print
+    print ' >>> STARTING PARTICLE ISOLATION <<< \n'
+    print ' >>> infile:',infile
+    print ' >>> outfile:',outfile
+
+    num_bins = div_per_axis**3
+    print ' >>> divisions per dimension:', div_per_axis
+    print ' >>> total num bins:', num_bins
+
+    (xmin, xmax) = constants.col_0_min_max
+    (ymin, ymax) = constants.col_1_min_max
+    (zmin, zmax) = constants.col_2_min_max
+
+    binsz_x = (xmax - xmin)/div_per_axis
+    binsz_y = (ymax - ymin)/div_per_axis
+    binsz_z = (zmax - zmin)/div_per_axis
+
+    print
+    print ' >>> binsz_x:',binsz_x
+    print ' >>> binsz_y:',binsz_y
+    print ' >>> binsz_z:',binsz_z
+
+    ps = manager.load_bin_3D(infile, bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, verbose=True)
+    print '\n >>> writing bin... \n'
+    my_writetxt(outfile, ps)
+
+
+"""
+Preliminary demonstration of how to learn the identity distribution on simulation data. 
+"""
+def ID_demo():
 
     num_bins = 18
     bindex = [0, 0, 0]
@@ -699,7 +703,10 @@ def ID_tests():
     for i in range(len(partial_lengths)):
         print 'data length:', partial_lengths[i],'avg. test error:',errs[i]
 
-def regression_tests():
+"""
+Preliminary demonstration of how to perform regression on simulation data.
+"""
+def regression_demo():
 
     num_bins = 18
     bindex = [0, 0, 0]
@@ -779,69 +786,20 @@ def regression_tests():
         print 'data length:', partial_lengths[i],'avg. test error:',errs[i]
 
 
-def misc():
-
-    num_bins = int(32768**(1./3))
-    bindex = [0, 0, 0]
-    bindices = [bindex]
-
-    (xmin, xmax) = constants.col_0_min_max
-    (ymin, ymax) = constants.col_1_min_max
-    (zmin, zmax) = constants.col_2_min_max
-
-    binsz_x = (xmax - xmin)/num_bins
-    binsz_y = (ymax - ymin)/num_bins
-    binsz_z = (zmax - zmin)/num_bins
-
-    ass = manager.count_particles_3D('sims/new_sim1_exact.txt', bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, num_bins, verbose=True)
-
-def data_tests():
-
-    assignments = {}
-    assignments['[0, 0, 0]'] = [[1, 2, 3, 4, 5, 6], [3, 3, 3, 3, 3, 3], [4, 4, 4, 3, 3, 3]]
-    assignments['[0, 1, 1]'] = [[1, 2, 3, 4, 5, 6], [3, 3, 3, 3, 3, 3], [4, 4, 4, 3, 3, 2]]
-    assignments['[0, 2, 0]'] = [[1, 2, 3, 4, 5, 6], [3, 3, 3, 3, 3, 3], [2, 2, 2, 2, 2, 2]]
-    
-    xmin, xmax = 1., 6.
-    ymin, ymax = 1., 6.
-    zmin, zmax = 1., 6.
-
-    np.savetxt('assign.txt', [])
-    manager.save_assignments_3D(assignments, 3, 'assign.txt', xmin, xmax, ymin, ymax, zmin, zmax)
-    coeffs = np.loadtxt('assign.txt')
-    print coeffs
-
-def demo():
-
-    data = [[1, 2], [1, 3], [4, 5]]
-    B = neighbors.BallTree(data)
-    show()
-
-
 def tests():
     #KNN_tests_1D()
     #KNN_tests_ND()
     #coeff_tests_6D()
-    #density_tests()
-
-    Jhat_tests()
-    #ID_tests()
-    #regression_tests()
-    #data_tests()
-
-    #misc()
+    density_tests(infile = 'sims/new_sim1_approx.txt')
+    #Jhat_tests()
+    pass
 
 def demo():
 
-    isolate_particles()
-
-    """
-    mini_data = manager.load_floats('sims/sim1_approx_1000.txt')[:100]
-    print 'min x:',min(mini_data[:,0])
-    print 'max x:',max(mini_data[:,0])
-    print 'min vx:',min(mini_data[:,3])
-    print 'max vx:',max(mini_data[:,3])
-    """
+    #isolate_particles()
+    #ID_demo()
+    #regression_demo()
+    pass
 
 """
 Runs any tests installed in tests(); runs demo().
