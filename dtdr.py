@@ -584,7 +584,7 @@ def isolate_particles(div_per_axis = 18, bindex = [0, 0, 0], infile = 'sims/new_
     if (not outfile): outfile = 'innermost_bin_' + str(div_per_axis) + '.txt'
 
     print
-    print ' >>> STARTING PARTICLE ISOLATION <<<'
+    print ' >>> STARTING PARTICLE ISOLATION <<< \n'
     print ' >>> infile:',infile
     print ' >>> outfile:',outfile
 
@@ -604,7 +604,6 @@ def isolate_particles(div_per_axis = 18, bindex = [0, 0, 0], infile = 'sims/new_
     print ' >>> binsz_x:',binsz_x
     print ' >>> binsz_y:',binsz_y
     print ' >>> binsz_z:',binsz_z
-    print
 
     ps = manager.load_bin_3D(infile, bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, verbose=True)
     print '\n >>> writing bin... \n'
