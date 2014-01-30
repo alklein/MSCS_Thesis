@@ -143,7 +143,7 @@ def vis(data, labels, titles):
 
 def scan_min_max(filename):
     minX, minY, minZ = 10000000, 10000000, 10000000
-    maxX, maxY, maxY = -10000000, -10000000, -10000000
+    maxX, maxY, maxZ = -10000000, -10000000, -10000000
     count = 0
     for line in open(filename):
         [x, y, z, vx, vy, vz] = [float(val) for val in line.split()]
@@ -160,9 +160,29 @@ def scan_min_max(filename):
             print count/1000000, 'million particles scanned. current results:', minX, maxX, '\t', minY, maxY, '\t', minZ, maxZ
         count += 1
 
+"""
+Returns empirical min and max values of an entire dataset
+along some axis (the specified column). Uses constant memory.
+"""
+def lowmem_global_min_max(filename, col, verbose=False, start_min = 1000000, start_max = -1000000):
+    if (verbose): print '\n >>> Finding global minmax of',filename,'column',col,'\n'
+    cur_min, cur_max = start_min, start_max
+    count = 0
+    for line in open(filename):
+        cur_p = [float(val) for val in line.split()]
+        cur_val = cur_p[col]
+        if (cur_val < cur_min): cur_min = cur_val
+        if (cur_val > cur_max): cur_max = cur_val
+        if (count % 10000000 == 0): 
+            print count/1000000,'- cur min:',cur_min,'- cur max:',cur_max
+        count += 1
+    return (cur_min, cur_max)
+
 
 XX, YY, ZZ, VX, VY, VZ = range(6)
-scan_min_max('sims/new_sim1_exact.txt')
+#lowmem_global_min_max('sims/new_sim1_approx.txt', col=0, verbose=True)
+#lowmem_global_min_max('sims/new_sim1_approx.txt', col=1, verbose=True)
+#lowmem_global_min_max('sims/new_sim1_approx.txt', col=2, verbose=True)
 
 """
 Creation of isolated cube data. 
@@ -171,8 +191,8 @@ Creation of isolated cube data.
 17 divisions per axis -> 17**3 cubes; 
 data from cube nearest the origin is retained.
 """
-#isolate_particles(div_per_axis = 18, bindex = [0, 0, 0], infile = 'sims/new_sim1_exact.txt', outfile = 'sim1_partial_exact_18.txt')
-#isolate_particles(div_per_axis = 18, bindex = [0, 0, 0], infile = 'sims/new_sim1_approx.txt', outfile = 'sim1_partial_approx_18.txt')
+isolate_particles(div_per_axis = 18, bindex = [1, 1, 1], infile = 'sims/new_sim1_exact.txt', outfile = 'sim1_partial_exact_18_111.txt')
+isolate_particles(div_per_axis = 18, bindex = [1, 1, 1], infile = 'sims/new_sim1_approx.txt', outfile = 'sim1_partial_approx_18_111.txt')
 
 #isolate_particles(div_per_axis = 17, bindex = [0, 0, 0], infile = 'sims/new_sim1_exact.txt', outfile = 'sim1_partial_exact_17.txt')
 #isolate_particles(div_per_axis = 17, bindex = [0, 0, 0], infile = 'sims/new_sim1_approx.txt', outfile = 'sim1_partial_approx_17.txt')

@@ -167,6 +167,10 @@ def count_particles_3D(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, b
         if counts[key] > 0:
             print key,'-',counts[key]
 
+    all_counts = [counts[key] for key in counts]
+    print
+    print all_counts
+
 """
 Maps bindices to their particles in 3D.
 """
@@ -233,7 +237,7 @@ def save_assignments_3D(assignments, T, filename, xmin, xmax, ymin, ymax, zmin, 
 
 """
 Returns empirical min and max values of an entire dataset
-along some axis (the specified column).
+along some axis (the specified column). Stores axis in memory.
 """
 def global_min_max(filename, col, verbose=False):
     vals = []
@@ -244,6 +248,23 @@ def global_min_max(filename, col, verbose=False):
         if (count % 1000000 == 0): print count/1000000
         count += 1
     return (min(vals), max(vals))
+
+"""
+Returns empirical min and max values of an entire dataset
+along some axis (the specified column). Uses constant memory.
+"""
+def lowmem_global_min_max(filename, col, verbose=False, start_min = 1000000, start_max = -1000000):
+    cur_min, cur_max = start_min, start_max
+    count = 0
+    for line in open(filename):
+        cur_p = [float(val) for val in line.split()]
+        cur_val = cur_p[col]
+        if (cur_val < cur_min): cur_min = cur_val
+        if (cur_val > cur_max): cur_max = cur_val
+        if (count % 1000000 == 0): 
+            print count/1000000,'- cur min:',cur_min,'- cur max:',cur_max
+        count += 1
+    return (cur_min, cur_max)
 
 """
 Returns min and max position and velocity values.

@@ -518,6 +518,7 @@ prints out resulting density distribution.
 For Hy's simulations (2^30 particles each), setting M = eta
 gives bins_per_axis = int(32768**(1./3)). 
 """
+# TODO: use min/max column values from appropriate file
 def density_tests(div_per_axis = 5, infile = 'sims/new_sim1_exact.txt'):    
 
     print ' >>> STARTING DENSITY TESTS <<<'
