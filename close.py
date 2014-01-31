@@ -233,17 +233,18 @@ print 'zmin, zmax:',zmin,zmin + binsz_z
 data = [[exact_cube[:,XX], approx_cube[:,XX]], [exact_cube[:,YY], approx_cube[:,YY]]]
 labels = ['X Pos (kpc)', 'Y Pos (kpc)']
 titles = ['Exact', 'Approx']
-vis(data, labels, titles, res=500, xmin = xmin, xmax = xmin + binsz_x, ymin = ymin, ymax = ymin + binsz_y)
+#vis(data, labels, titles, res=500, xmin = xmin, xmax = xmin + binsz_x, ymin = ymin, ymax = ymin + binsz_y)
 
 figure(0)
 plot(exact_cube[:,XX], exact_cube[:,YY], '.')
 axes = gca()
-axes.set_ylim(-35, 0)
+axes.set_xlim(xmin, xmin + binsz_x)
+axes.set_ylim(ymin, ymin + binsz_y)
 
 figure(1)
 plot(approx_cube[:,XX], approx_cube[:,YY], '.')
 axes = gca()
-axes.set_ylim(-35, 0)
+axes.set_xlim(xmin, xmin + binsz_x)
+axes.set_ylim(ymin, ymin + binsz_y)
 
-
-
+show()
