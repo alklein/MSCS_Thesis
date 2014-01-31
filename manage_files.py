@@ -103,7 +103,7 @@ def load_bin_3D(filename, bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, v
 
         if ((count % 10000000 == 0) and (verbose)): 
             print count/1000000,'million particles searched...'
-            print 'particles found so far:',len(ps)
+            print 'particles found so far:', format(len(ps), ',d')
         count += 1
 
         cur_p = [float(val) for val in line.split()]

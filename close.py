@@ -48,7 +48,7 @@ def load_bin_3D(filename, bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, v
 
         if ((count % 10000000 == 0) and (verbose)): 
             print count/1000000,'million particles searched...'
-            print 'particles found so far:',len(ps)
+            print 'particles found so far:', format(len(ps), ',d')
         count += 1
 
         cur_p = [float(val) for val in line.split()]
@@ -57,6 +57,20 @@ def load_bin_3D(filename, bindex, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, v
             ps.append(cur_p)
     
     return np.array(ps)
+
+"""
+Custom function, like numpy's savetxt(), to forcibly write data to file.
+"""
+def my_writetxt(filename, data):
+    np.savetxt(filename, [])
+    f = open(filename, 'r+')
+    for line in data:
+        outp = ''
+        for val in line:
+            outp += str(val) + ' '
+        outp += '\n'
+        f.write(outp)
+    f.close()
 
 """
 Divides specified data into num_bins divisions along each axis. 
@@ -180,6 +194,9 @@ def lowmem_global_min_max(filename, col, verbose=False, start_min = 1000000, sta
 
 
 XX, YY, ZZ, VX, VY, VZ = range(6)
+
+#lowmem_global_min_max('sims/new_sim1_exact.txt', col=0, verbose=True)
+
 #lowmem_global_min_max('sims/new_sim1_approx.txt', col=0, verbose=True)
 #lowmem_global_min_max('sims/new_sim1_approx.txt', col=1, verbose=True)
 #lowmem_global_min_max('sims/new_sim1_approx.txt', col=2, verbose=True)
