@@ -79,7 +79,7 @@ def load_partial(filename, num_bins, dim, binsz):
     return np.array(result)
 
 """
-Extracts all particles in the specified range from the file.
+Extracts all particles in the specified bin from the file.
 
 Assumes a 3D partitioning on the data; i.e. bindex is a 3D
 vector of the form [i, j, k] that specifies the bin.

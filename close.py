@@ -16,7 +16,7 @@ import math
 import itertools
 import numpy as np
 
-#from pylab import *
+from pylab import *
 from random import *
 
 """ Custom Imports """
@@ -122,13 +122,14 @@ def isolate_particles(div_per_axis = 18, bindex = [0, 0, 0], infile = 'sims/new_
 # effects: n/a
 # notes: n/a
 
-def bns_ext(data, res=400):
-    xmins, xmaxs = map(min, data[0]), map(max, data[0])
-    ymins, ymaxs = map(min, data[1]), map(max, data[1])
-    xmin, xmax = min(xmins), max(xmaxs)
-    ymin, ymax = min(ymins), max(ymaxs)
-    xrange, yrange = np.linspace(xmin, xmax, res), np.linspace(ymin, ymax, res)
-    return [yrange, xrange], [xmin, xmax, ymin, ymax]
+def bns_ext(data, res=400, xmin=None, xmax=None, ymin=None, ymax=None):
+    if (not xmin or not xmax or not ymin or not ymax):
+        xmins, xmaxs = map(min, data[0]), map(max, data[0])
+        ymins, ymaxs = map(min, data[1]), map(max, data[1])
+        xmin, xmax = min(xmins), max(xmaxs)
+        ymin, ymax = min(ymins), max(ymaxs)
+    xrnge, yrnge = np.linspace(xmin, xmax, res), np.linspace(ymin, ymax, res)
+    return [yrnge, xrnge], [xmin, xmax, ymin, ymax]
 
 # description: makes colored 'scatter' plots for side-by-side comparison of data
 # input:
@@ -139,12 +140,12 @@ def bns_ext(data, res=400):
 # effects: n/a
 # notes: does not take log of data (must use np.log beforehand for semilog or log-log vis)
 
-def vis(data, labels, titles):
+def vis(data, labels, titles, res=400, xmin=None, xmax=None, ymin=None, ymax=None):
     i = 0
     while i < len(data[0]):
         figure(i)
         xs, ys = data[0][i], data[1][i]
-        bns, ext = bns_ext(data)
+        bns, ext = bns_ext(data, res, xmin, xmax, ymin, ymax)
         H, yedges, xedges = np.histogram2d(ys, xs, bins=bns)
         imshow(H, extent=ext, aspect='equal', cmap = cm.jet, interpolation='nearest', origin='lower', vmin=0.0, vmax=10.0)
         colorbar()
@@ -208,8 +209,8 @@ Creation of isolated cube data.
 17 divisions per axis -> 17**3 cubes; 
 data from cube nearest the origin is retained.
 """
-isolate_particles(div_per_axis = 18, bindex = [1, 1, 1], infile = 'sims/new_sim1_exact.txt', outfile = 'sim1_partial_exact_18_111.txt')
-isolate_particles(div_per_axis = 18, bindex = [1, 1, 1], infile = 'sims/new_sim1_approx.txt', outfile = 'sim1_partial_approx_18_111.txt')
+#isolate_particles(div_per_axis = 18, bindex = [1, 1, 1], infile = 'sims/new_sim1_exact.txt', outfile = 'sim1_partial_exact_18_111.txt')
+#isolate_particles(div_per_axis = 18, bindex = [1, 1, 1], infile = 'sims/new_sim1_approx.txt', outfile = 'sim1_partial_approx_18_111.txt')
 
 #isolate_particles(div_per_axis = 17, bindex = [0, 0, 0], infile = 'sims/new_sim1_exact.txt', outfile = 'sim1_partial_exact_17.txt')
 #isolate_particles(div_per_axis = 17, bindex = [0, 0, 0], infile = 'sims/new_sim1_approx.txt', outfile = 'sim1_partial_approx_17.txt')
@@ -222,6 +223,7 @@ print 'number of particles in exact cube:',len(exact_cube)
 print 'number of particles in approx cube:',len(approx_cube)
 
 print
+print '>>> empirical ranges:'
 print 'exact X range:',min(exact_cube[:,XX]),max(exact_cube[:,XX])
 print 'approx X range:',min(approx_cube[:,XX]),max(approx_cube[:,XX])
 print 'exact Y range:',min(exact_cube[:,YY]),max(exact_cube[:,YY])
@@ -229,20 +231,37 @@ print 'approx Y range:',min(approx_cube[:,YY]),max(approx_cube[:,YY])
 print 'exact Z range:',min(exact_cube[:,ZZ]),max(exact_cube[:,ZZ])
 print 'approx Z range:',min(approx_cube[:,ZZ]),max(approx_cube[:,ZZ])
 
-data = [[exact_cube[:,XX]*10, approx_cube[:,XX]*10], [exact_cube[:,YY], approx_cube[:,YY]]]
-labels = ['X Pos (kpc/10)', 'Y Pos (kpc)']
+(xmin, xmax) = constants.exact_col_0_min_max
+(ymin, ymax) = constants.exact_col_1_min_max
+(zmin, zmax) = constants.exact_col_2_min_max
+
+div_per_axis = 18
+
+binsz_x = (xmax - xmin)/div_per_axis
+binsz_y = (ymax - ymin)/div_per_axis
+binsz_z = (zmax - zmin)/div_per_axis
+
+print
+print '>>> boundaries of cube:'
+print 'xmin, xmax:',xmin,xmin + binsz_x
+print 'ymin, ymax:',ymin,ymin + binsz_y
+print 'zmin, zmax:',zmin,zmin + binsz_z
+
+data = [[exact_cube[:,XX], approx_cube[:,XX]], [exact_cube[:,YY], approx_cube[:,YY]]]
+labels = ['X Pos (kpc)', 'Y Pos (kpc)']
 titles = ['Exact', 'Approx']
-vis(data, labels, titles)
+#vis(data, labels, titles, res=500, xmin = xmin, xmax = xmin + binsz_x, ymin = ymin, ymax = ymin + binsz_y)
 
 figure(0)
 plot(exact_cube[:,XX], exact_cube[:,YY], '.')
 axes = gca()
-axes.set_ylim(-35, 0)
+axes.set_xlim(xmin, xmin + binsz_x)
+axes.set_ylim(ymin, ymin + binsz_y)
 
 figure(1)
 plot(approx_cube[:,XX], approx_cube[:,YY], '.')
 axes = gca()
-axes.set_ylim(-35, 0)
+axes.set_xlim(xmin, xmin + binsz_x)
+axes.set_ylim(ymin, ymin + binsz_y)
 
-
-
+show()
