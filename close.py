@@ -126,14 +126,14 @@ def bns_ext(data, res=400, xmin=None, xmax=None, ymin=None, ymax=None):
 # effects: n/a
 # notes: does not take log of data (must use np.log beforehand for semilog or log-log vis)
 
-def vis(data, labels, titles, res=400, xmin=None, xmax=None, ymin=None, ymax=None):
+def vis(data, labels, titles, res=400, vmax=10.0, xmin=None, xmax=None, ymin=None, ymax=None):
     i = 0
     while i < len(data[0]):
         figure(i)
         xs, ys = data[0][i], data[1][i]
         bns, ext = bns_ext(data, res, xmin, xmax, ymin, ymax)
         H, yedges, xedges = np.histogram2d(ys, xs, bins=bns)
-        imshow(H, extent=ext, aspect='equal', cmap = cm.jet, interpolation='nearest', origin='lower', vmin=0.0, vmax=10.0)
+        imshow(H, extent=ext, aspect='equal', cmap = cm.jet, interpolation='nearest', origin='lower', vmin=0.0, vmax=vmax)
         colorbar()
         rc('text', usetex=True)
         xlabel(labels[0], fontsize=20)
@@ -179,6 +179,15 @@ def lowmem_global_min_max(filename, col, verbose=False, start_min = 1000000, sta
         count += 1
     return (cur_min, cur_max)
 
+"""
+Returns values in file called filename as array of arrays of floats
+"""
+def load_floats(filename):
+    result = []
+    for line in open(filename):
+        result.append([float(val) for val in line.split()])
+    return np.array(result)
+
 
 XX, YY, ZZ, VX, VY, VZ = range(6)
 #lowmem_global_min_max('sims/new_sim1_approx.txt', col=0, verbose=True)
@@ -198,8 +207,12 @@ data from cube nearest the origin is retained.
 #isolate_particles(div_per_axis = 17, bindex = [0, 0, 0], infile = 'sims/new_sim1_exact.txt', outfile = 'sim1_partial_exact_17.txt')
 #isolate_particles(div_per_axis = 17, bindex = [0, 0, 0], infile = 'sims/new_sim1_approx.txt', outfile = 'sim1_partial_approx_17.txt')
 
-exact_cube = np.loadtxt('sim1_partial_exact_18.txt')
-approx_cube = np.loadtxt('sim1_partial_approx_18.txt')
+print '\nloading exact cube...'
+#exact_cube = np.loadtxt('sim1_partial_exact_18_111.txt')
+exact_cube = load_floats('sim1_partial_exact_18_111.txt')
+print '\nloading approx cube...'
+#approx_cube = np.loadtxt('sim1_partial_approx_18_111.txt')
+approx_cube = load_floats('sim1_partial_approx_18_111.txt')
 
 print
 print 'number of particles in exact cube:',len(exact_cube)
@@ -226,14 +239,24 @@ binsz_z = (zmax - zmin)/div_per_axis
 
 print
 print '>>> boundaries of cube:'
-print 'xmin, xmax:',xmin,xmin + binsz_x
-print 'ymin, ymax:',ymin,ymin + binsz_y
-print 'zmin, zmax:',zmin,zmin + binsz_z
+print 'xmin, xmax:',xmin + binsz_x,xmin + 2*binsz_x
+print 'ymin, ymax:',ymin + binsz_y,ymin + 2*binsz_y
+print 'zmin, zmax:',zmin + binsz_z,zmin + 2*binsz_z
+
+zcut_in, zcut_out = zmin + binsz_z, zmin + binsz_z + binsz_z/50.
+print
+print '>>> cutting data along z axis to lie between',zcut_in,'and',zcut_out
+print 'old length of exact cube:',len(exact_cube)
+exact_cube = np.array([p for p in exact_cube if p[2] <= zcut_out])
+print 'new length of exact cube:',len(exact_cube)
+print 'old length of approx cube:',len(approx_cube)
+approx_cube = np.array([p for p in approx_cube if p[2] <= zcut_out])
+print 'new length of approx cube:',len(approx_cube)
 
 data = [[exact_cube[:,XX], approx_cube[:,XX]], [exact_cube[:,YY], approx_cube[:,YY]]]
 labels = ['X Pos (kpc)', 'Y Pos (kpc)']
 titles = ['Exact', 'Approx']
-#vis(data, labels, titles, res=500, xmin = xmin, xmax = xmin + binsz_x, ymin = ymin, ymax = ymin + binsz_y)
+vis(data, labels, titles, res=500, vmax=.1, xmin = xmin, xmax = xmin + binsz_x, ymin = ymin, ymax = ymin + binsz_y)
 
 figure(0)
 plot(exact_cube[:,XX], exact_cube[:,YY], '.')
