@@ -593,9 +593,9 @@ def isolate_particles(div_per_axis = 18, bindex = [0, 0, 0], infile = 'sims/new_
     print ' >>> divisions per dimension:', div_per_axis
     print ' >>> total num bins:', num_bins
 
-    (xmin, xmax) = constants.col_0_min_max
-    (ymin, ymax) = constants.col_1_min_max
-    (zmin, zmax) = constants.col_2_min_max
+    (xmin, xmax) = constants.exact_col_0_min_max
+    (ymin, ymax) = constants.exact_col_1_min_max
+    (zmin, zmax) = constants.exact_col_2_min_max
 
     binsz_x = (xmax - xmin)/div_per_axis
     binsz_y = (ymax - ymin)/div_per_axis
@@ -791,13 +791,13 @@ def tests():
     #KNN_tests_1D()
     #KNN_tests_ND()
     #coeff_tests_6D()
-    density_tests(infile = 'sims/new_sim1_approx.txt')
+    #density_tests(infile = 'sims/new_sim1_approx.txt')
     #Jhat_tests()
     pass
 
 def demo():
 
-    #isolate_particles()
+    isolate_particles()
     #ID_demo()
     #regression_demo()
     pass

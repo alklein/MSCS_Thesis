@@ -327,10 +327,6 @@ class Estimator:
         if verbose:
             print 'length of fit training data:',len(self.X_hats),'cv data:',len(self.cv_X_hats)
 
-        # TEMP AS FUCK
-        #print 'TEMP: EXITING COMPUTATION'
-        #exit(0)
-
         # cross-validate bandwidths
         print ' >>> [debug] cross-validating bandwidths...'
         b_errs = []
