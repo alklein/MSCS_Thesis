@@ -260,31 +260,94 @@ print 'xmin, xmax:',xmin + binsz_x,xmin + 2*binsz_x
 print 'ymin, ymax:',ymin + binsz_y,ymin + 2*binsz_y
 print 'zmin, zmax:',zmin + binsz_z,zmin + 2*binsz_z
 
-zcut_in, zcut_out = zmin + binsz_z, zmin + binsz_z + binsz_z/50.
+zcut_in, zcut_out = zmin + binsz_z, zmin + binsz_z + binsz_z/100.
 print
 print '>>> cutting data along z axis to lie between',zcut_in,'and',zcut_out
-print 'old length of exact cube:',len(exact_cube)
-exact_cube = np.array([p for p in exact_cube if p[2] <= zcut_out])
-print 'new length of exact cube:',len(exact_cube)
-print 'old length of approx cube:',len(approx_cube)
-approx_cube = np.array([p for p in approx_cube if p[2] <= zcut_out])
-print 'new length of approx cube:',len(approx_cube)
+print 'total length of exact cube:',len(exact_cube)
+exact_cube_bottom = np.array([p for p in exact_cube if p[2] <= zcut_out])
+print 'length of exact cube bottom:',len(exact_cube_bottom)
+print 'total length of approx cube:',len(approx_cube)
+approx_cube_bottom = np.array([p for p in approx_cube if p[2] <= zcut_out])
+print 'length of approx cube bottom:',len(approx_cube)
+
+zcut_in, zcut_out = zmin + 2*binsz_z - binsz_z/100., zmin + 2*binsz_z 
+print
+print '>>> cutting data along z axis to lie between',zcut_in,'and',zcut_out
+print 'total length of exact cube:',len(exact_cube)
+exact_cube_top = np.array([p for p in exact_cube if p[2] >= zcut_in])
+print 'length of exact cube top:',len(exact_cube_top)
+print 'total length of approx cube:',len(approx_cube)
+approx_cube_top = np.array([p for p in approx_cube if p[2] >= zcut_in])
+print 'length of approx cube top:',len(approx_cube_top)
+
+zcut_in, zcut_out = zmin + binsz_z + binsz_z/2., zmin + binsz_z + binsz_z/2. + binsz_z/100.
+print
+print '>>> cutting data along z axis to lie between',zcut_in,'and',zcut_out
+print 'total length of exact cube:',len(exact_cube)
+exact_cube_middle = np.array([p for p in exact_cube if p[2] >= zcut_in and p[2] <= zcut_out])
+print 'length of exact cube middle:',len(exact_cube_middle)
+print 'total length of approx cube:',len(approx_cube)
+approx_cube_middle = np.array([p for p in approx_cube if p[2] >= zcut_in and p[2] <= zcut_out])
+print 'length of approx cube middle:',len(approx_cube_middle)
 
 data = [[exact_cube[:,XX], approx_cube[:,XX]], [exact_cube[:,YY], approx_cube[:,YY]]]
-labels = ['X Pos (kpc)', 'Y Pos (kpc)']
-titles = ['Exact', 'Approx']
-vis(data, labels, titles, res=500, vmax=.1, xmin = xmin, xmax = xmin + binsz_x, ymin = ymin, ymax = ymin + binsz_y)
+labels = ['X Coordinate', 'Y Coordinate']
+titles = ['', '']
+vis(data, labels, titles, res=500, vmax=10.0, xmin = xmin + binsz_x, xmax = xmin + 2*binsz_x, ymin = ymin + binsz_y, ymax = ymin + 2*binsz_y)
+
+data = [[exact_cube_bottom[:,XX], approx_cube_bottom[:,XX], exact_cube_top[:,XX], approx_cube_top[:,XX], exact_cube_middle[:,XX], approx_cube_middle[:,XX]], \
+            [exact_cube_bottom[:,YY], approx_cube_bottom[:,YY], exact_cube_top[:,YY], approx_cube_top[:,YY], exact_cube_middle[:,YY], approx_cube_middle[:,YY]]]
+labels = ['X Coordinate', 'Y Coordinate']
+#titles = ['Exact (bottom)', 'Approx (bottom)', 'Exact (top)', 'Approx (top)', 'Exact (middle)', 'Approx (middle)']
+titles = ['', '', '', '', '', '']
+vis(data, labels, titles, res=500, vmax=10.0, xmin = xmin + binsz_x, xmax = xmin + 2*binsz_x, ymin = ymin + binsz_y, ymax = ymin + 2*binsz_y)
 
 figure(0)
 plot(exact_cube[:,XX], exact_cube[:,YY], '.')
 axes = gca()
-axes.set_xlim(xmin, xmin + binsz_x)
-axes.set_ylim(ymin, ymin + binsz_y)
+axes.set_xlim(xmin + binsz_x, xmin + 2*binsz_x)
+axes.set_ylim(ymin + binsz_y, ymin + 2*binsz_y)
+xlabel('X Coordinate', fontsize=20)
+ylabel('Y Coordinate', fontsize=20)
 
 figure(1)
 plot(approx_cube[:,XX], approx_cube[:,YY], '.')
 axes = gca()
-axes.set_xlim(xmin, xmin + binsz_x)
-axes.set_ylim(ymin, ymin + binsz_y)
+axes.set_xlim(xmin + binsz_x, xmin + 2*binsz_x)
+axes.set_ylim(ymin + binsz_y, ymin + 2*binsz_y)
+xlabel('X Coordinate', fontsize=20)
+ylabel('Y Coordinate', fontsize=20)
+
+figure(2)
+plot(exact_cube_bottom[:,XX], exact_cube_bottom[:,YY], '.')
+axes = gca()
+axes.set_xlim(xmin + binsz_x, xmin + 2*binsz_x)
+axes.set_ylim(ymin + binsz_y, ymin + 2*binsz_y)
+xlabel('X Coordinate', fontsize=20)
+ylabel('Y Coordinate', fontsize=20)
+
+figure(3)
+plot(approx_cube_bottom[:,XX], approx_cube_bottom[:,YY], '.')
+axes = gca()
+axes.set_xlim(xmin + binsz_x, xmin + 2*binsz_x)
+axes.set_ylim(ymin + binsz_y, ymin + 2*binsz_y)
+xlabel('X Coordinate', fontsize=20)
+ylabel('Y Coordinate', fontsize=20)
+
+figure(4)
+plot(exact_cube_top[:,XX], exact_cube_top[:,YY], '.')
+axes = gca()
+axes.set_xlim(xmin + binsz_x, xmin + 2*binsz_x)
+axes.set_ylim(ymin + binsz_y, ymin + 2*binsz_y)
+xlabel('X Coordinate', fontsize=20)
+ylabel('Y Coordinate', fontsize=20)
+
+figure(5)
+plot(approx_cube_top[:,XX], approx_cube_top[:,YY], '.')
+axes = gca()
+axes.set_xlim(xmin + binsz_x, xmin + 2*binsz_x)
+axes.set_ylim(ymin + binsz_y, ymin + 2*binsz_y)
+xlabel('X Coordinate', fontsize=20)
+ylabel('Y Coordinate', fontsize=20)
 
 show()
