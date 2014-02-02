@@ -187,11 +187,7 @@ def assign_particles_3D(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, 
     for line in open(filename):
 
         if ((count % chunk == 0) and (verbose)):
-            print 
-            print count/chunk,'million particles searched'
-            print 'current assignments:'
-            for key in assignments:
-                pass
+            print count/chunk,'million particles assigned...'
         count += 1
 
         cur_p = [float(val) for val in line.split()]
@@ -211,6 +207,30 @@ def assign_particles_3D(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, 
                     index += 1
                     next_cut = cur_cuts[index + 1]
                 cur_bindex.append(index)
+        if (str(cur_bindex) in assignments):
+            assignments[str(cur_bindex)].append(cur_p)
+
+    return assignments                
+
+"""
+Maps bindices to their particles in 3D.
+"""
+def assign_particles_3D_fast(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, num_bins, verbose=False, chunk=1000000):
+
+    assignments = {str(bindex) : [] for bindex in bindices}
+    count = 0
+
+    for line in open(filename):
+
+        if ((count % chunk == 0) and (verbose)):
+            print count/chunk,'million particles assigned...'
+        count += 1
+
+        cur_p = [float(val) for val in line.split()]
+        sc_x = (cur_p[0] - xmin)/(binsz_x)
+        sc_y = (cur_p[1] - ymin)/(binsz_y)
+        sc_z = (cur_p[2] - zmin)/(binsz_z)
+        cur_bindex = [int(sc_x), int(sc_y), int(sc_z)]
         if (str(cur_bindex) in assignments):
             assignments[str(cur_bindex)].append(cur_p)
 
