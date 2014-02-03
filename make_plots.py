@@ -13,6 +13,19 @@ import numpy as np
 from pylab import *
 
 
+def assignment_speed():
+
+    divs = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+    bin_counts = [d**3 for d in divs]
+    old_times = [110.89, 132.85, 152.01, 159.99, 187.38999999999987, 210.2099999999998, 220.54999999999995, 236.57999999999993, 261.17999999999984, 255.8800000000001]
+    new_times = [80.80000000000001, 81.45999999999998, 96.79999999999995, 99.38999999999999, 93.24000000000001, 93.7800000000002, 104.55000000000018, 101.92000000000007, 103.92000000000007, 109.15000000000009]
+
+    figure(0)
+    plot(bin_counts, old_times)
+    plot(bin_counts, new_times)
+    xlabel('Number of Bins', fontsize=20)
+    ylabel('Time to Assign Particles (s)', fontsize=20)
+
 def bin_densities(f1, f2):
 
     old_bin_count_dict_exact = {str([2, 1, 0]) : 3027763,
@@ -349,5 +362,6 @@ Create desired plots here.
 """
 if __name__ == '__main__':
 
-    bin_densities(0, 1)
+    assignment_speed()
+    #bin_densities(0, 1)
     show()
