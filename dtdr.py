@@ -609,9 +609,11 @@ def isolate_particles(div_per_axis = 18, bindex = [0, 0, 0], infile = 'sims/new_
     print '\n >>> writing bin... \n'
     my_writetxt(outfile, ps)
 
-def compare_assignments(new_div_per_axis = 10):
+def compare_assignments():
 
     infile = 'sim1_partial_exact_18_111.txt'
+    print ' >>> ASSIGNING PARTICLES FROM',infile,'TO BINS <<<\n'
+
     (xmin, xmax) = constants.exact_col_0_min_max
     (ymin, ymax) = constants.exact_col_1_min_max
     (zmin, zmax) = constants.exact_col_2_min_max
@@ -626,27 +628,79 @@ def compare_assignments(new_div_per_axis = 10):
     new_ymin = ymin + binsz_y
     new_zmin = zmin + binsz_z
 
-    new_binsz_x = binsz_x/new_div_per_axis
-    new_binsz_y = binsz_y/new_div_per_axis
-    new_binsz_z = binsz_z/new_div_per_axis
+    old_times = []
+    new_times = []
+    divs = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+    for new_div_per_axis in divs:
 
-    print ' >>> ASSIGNING PARTICLES FROM',infile,'TO BINS <<<'
-    print ' >>> divisions per dimension:', new_div_per_axis
-    print ' >>> total num bins:', new_div_per_axis**3
-    print ' >>> >>> xmin:', new_xmin
-    print ' >>> >>> binsz_x:', new_binsz_x
+        new_binsz_x = binsz_x/new_div_per_axis
+        new_binsz_y = binsz_y/new_div_per_axis
+        new_binsz_z = binsz_z/new_div_per_axis
 
-    new_bindices = manager.bindices_3D(new_div_per_axis)
+        print ' >>> divisions per dimension:', new_div_per_axis
+        print ' >>> total num bins:', new_div_per_axis**3
+        print ' >>> >>> xmin:', new_xmin
+        print ' >>> >>> binsz_x:', new_binsz_x
 
-    print '\n >>> Assigning particles with old method \n'
-    slow_assignments = manager.assign_particles_3D(infile, new_bindices, new_xmin, new_ymin, new_zmin, new_binsz_x, new_binsz_y, new_binsz_z, new_div_per_axis, verbose=True)
+        new_bindices = manager.bindices_3D(new_div_per_axis)
+        
+        print '\n >>> Assigning particles with old method \n'
+        start = time.clock()
+        slow_assignments = manager.assign_particles_3D(infile, new_bindices, new_xmin, new_ymin, new_zmin, new_binsz_x, new_binsz_y, new_binsz_z, new_div_per_axis, verbose=True)
+        end = time.clock() - start
+        old_times.append(end)
+        print '\n >>> ...this took',end,'seconds'
+        
+        print '\n >>> Assigning particles with new method \n'
+        start = time.clock()
+        fast_assignments = manager.assign_particles_3D_fast(infile, new_bindices, new_xmin, new_ymin, new_zmin, new_binsz_x, new_binsz_y, new_binsz_z, new_div_per_axis, verbose=True)
+        end = time.clock() - start
+        new_times.append(end)
+        print '\n >>> ...this took',end,'seconds'
 
-    print '\n >>> Assigning particles with new method \n'
-    fast_assignments = manager.assign_particles_3D_fast(infile, new_bindices, new_xmin, new_ymin, new_zmin, new_binsz_x, new_binsz_y, new_binsz_z, new_div_per_axis, verbose=True)
+    print '\nDivs:',divs
+    print '\nOld times:',old_times
+    print '\nNew times:',new_times
 
-    print
-    for key in slow_assignments:
-        print 'key:',key,'\tslow:',len(slow_assignments[key]),'\tfast:',len(fast_assignments[key])
+def examine_binned_sample():
+    
+    infile = 'sim1_partial_exact_18_111.txt'
+    print ' >>> ASSIGNING PARTICLES FROM',infile,'TO BINS <<<\n'
+
+    (xmin, xmax) = constants.exact_col_0_min_max
+    (ymin, ymax) = constants.exact_col_1_min_max
+    (zmin, zmax) = constants.exact_col_2_min_max
+
+    div_per_axis = 18
+    
+    binsz_x = (xmax - xmin)/div_per_axis
+    binsz_y = (ymax - ymin)/div_per_axis
+    binsz_z = (zmax - zmin)/div_per_axis
+
+    new_xmin = xmin + binsz_x
+    new_ymin = ymin + binsz_y
+    new_zmin = zmin + binsz_z
+
+    divs = [10, 20, 30] #, 40, 50, 60, 70, 80, 90, 100]
+    for new_div_per_axis in divs:
+
+        new_binsz_x = binsz_x/new_div_per_axis
+        new_binsz_y = binsz_y/new_div_per_axis
+        new_binsz_z = binsz_z/new_div_per_axis
+
+        print ' >>> NEW EXPERIMENT'
+        print ' >>> >>> divisions per dimension:', new_div_per_axis
+        print ' >>> >>> total num bins:', new_div_per_axis**3
+        print ' >>> >>> xmin:', new_xmin
+        print ' >>> >>> binsz_x:', new_binsz_x,'\n'
+
+        new_bindices = manager.bindices_3D(new_div_per_axis)    
+        assignments = manager.assign_particles_3D_fast(infile, new_bindices, new_xmin, new_ymin, new_zmin, new_binsz_x, new_binsz_y, new_binsz_z, new_div_per_axis, verbose=True)
+        counts = [assignments[key] for key in assignments]
+        figure(new_div_per_axis)
+        hist(counts)
+
+    show()
 
 """
 Preliminary demonstration of how to learn the identity distribution on simulation data. 
@@ -835,7 +889,8 @@ def tests():
 def demo():
 
     #isolate_particles()
-    compare_assignments()
+    #compare_assignments()
+    examine_binned_sample()
     #ID_demo()
     #regression_demo()
     pass
