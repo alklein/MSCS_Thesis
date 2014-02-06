@@ -202,8 +202,89 @@ def load_floats(filename):
         result.append([float(val) for val in line.split()])
     return np.array(result)
 
+"""
+List of all bindices for 3D data partitioned 
+into div_per_axis divisions along each axis
+(for a total of 3^{div_per_axis} bins)
+"""
+def bindices_3D(div_per_axis):
+    return [[i, j, k] for i in range(div_per_axis)
+            for j in range(div_per_axis)
+            for k in range(div_per_axis)]
+
+"""
+Maps bindices to their particles in 3D.
+"""
+def assign_particles_3D_fast(filename, bindices, xmin, ymin, zmin, binsz_x, binsz_y, binsz_z, num_bins, verbose=False, chunk=1000000):
+
+    assignments = {str(bindex) : [] for bindex in bindices}
+    count = 0
+
+    for line in open(filename):
+
+        if ((count % chunk == 0) and (verbose)):
+            print count/chunk,'million particles assigned...'
+        count += 1
+
+        cur_p = [float(val) for val in line.split()]
+        sc_x = (cur_p[0] - xmin)/(binsz_x)
+        sc_y = (cur_p[1] - ymin)/(binsz_y)
+        sc_z = (cur_p[2] - zmin)/(binsz_z)
+        cur_bindex = [int(sc_x), int(sc_y), int(sc_z)]
+        if (str(cur_bindex) in assignments):
+            assignments[str(cur_bindex)].append(cur_p)
+
+    return assignments                
+
+
+def examine_binned_sample():
+    
+    infile = 'sim1_partial_approx_18_111.txt'
+    print ' >>> ASSIGNING PARTICLES FROM',infile,'TO BINS <<<'
+
+    (xmin, xmax) = constants.exact_col_0_min_max
+    (ymin, ymax) = constants.exact_col_1_min_max
+    (zmin, zmax) = constants.exact_col_2_min_max
+
+    div_per_axis = 18
+    
+    binsz_x = (xmax - xmin)/div_per_axis
+    binsz_y = (ymax - ymin)/div_per_axis
+    binsz_z = (zmax - zmin)/div_per_axis
+
+    new_xmin = xmin + binsz_x
+    new_ymin = ymin + binsz_y
+    new_zmin = zmin + binsz_z
+
+    divs = [14, 15] #, 30, 40, 50, 60, 70, 80, 90, 100]
+    for new_div_per_axis in divs:
+
+        new_binsz_x = binsz_x/new_div_per_axis
+        new_binsz_y = binsz_y/new_div_per_axis
+        new_binsz_z = binsz_z/new_div_per_axis
+
+        print '\n >>> NEW EXPERIMENT'
+        print ' >>> >>> divisions per dimension:', new_div_per_axis
+        print ' >>> >>> xmin:', new_xmin
+        print ' >>> >>> binsz_x:', new_binsz_x,'\n'
+
+        new_bindices = bindices_3D(new_div_per_axis)    
+        assignments = assign_particles_3D_fast(infile, new_bindices, new_xmin, new_ymin, new_zmin, new_binsz_x, new_binsz_y, new_binsz_z, new_div_per_axis, verbose=True)
+        counts = [len(assignments[key]) for key in assignments]
+        print '... total num bins:', new_div_per_axis**3
+        print '... avg. num particles per bin:',np.average(counts)
+        print '... num empty bins:',len([c for c in counts if c < 1])
+
+        figure(new_div_per_axis)
+        hist(counts, bins=50, log=True)
+        xlabel('Count', fontsize=24)
+        ylabel('Number', fontsize=24)
+
+    show()
+
 
 XX, YY, ZZ, VX, VY, VZ = range(6)
+examine_binned_sample()
 
 #lowmem_global_min_max('sims/new_sim1_exact.txt', col=0, verbose=True)
 
