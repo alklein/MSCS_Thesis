@@ -650,7 +650,7 @@ def test():
     # load_speed_test()
     pll_test()
 
-def demo(num_plots = 5):
+def demo(num_plots = 2):
 
     M, eta = 10000, 10000
 
@@ -658,13 +658,13 @@ def demo(num_plots = 5):
     print ' > [debug] Making new toyData object...'
     tD = toyData(M = M, eta = eta)
 
-    #print
-    #print ' > [debug] Generating toy training data...'
-    #tD.make_samples()
+    print
+    print ' > [debug] Generating toy training data...'
+    tD.make_samples()
 
-    #print
-    #print ' > [debug] Writing toy data to file'
-    #tD.save_samples('data.txt', append=True) 
+    print
+    print ' > [debug] Writing toy data to file'
+    tD.save_samples('data.txt', append=True) 
 
     print
     print ' > [debug] Reading toy data from file... '
@@ -694,7 +694,7 @@ def demo(num_plots = 5):
         print ' > [debug] Regressing on new sample... '
         X0_coeffs = fourier_coeffs(X0_sample, 20)
         #Y0_coeffs = E.regress(X0_coeffs)
-        Y0_coeffs = E.KNN_regress(X0_coeffs, k=1)
+        Y0_coeffs = E.KNN_regress(X0_coeffs, k=5)
         X0_hat = coeffs_to_approx_density(X0_coeffs)
         Y0_hat = coeffs_to_approx_density(Y0_coeffs)        
         Y0 = coeffs_to_approx_density(fourier_coeffs(Y0_sample, 20))

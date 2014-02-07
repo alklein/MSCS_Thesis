@@ -227,9 +227,11 @@ data from cube nearest the origin is retained.
 print '\nloading exact cube...'
 #exact_cube = np.loadtxt('sim1_partial_exact_18_111.txt')
 exact_cube = load_floats('sim1_partial_exact_18_111.txt')
+print ' > length:',len(exact_cube)
 print '\nloading approx cube...'
 #approx_cube = np.loadtxt('sim1_partial_approx_18_111.txt')
 approx_cube = load_floats('sim1_partial_approx_18_111.txt')
+print ' > length:',len(approx_cube)
 
 print
 print 'number of particles in exact cube:',len(exact_cube)
