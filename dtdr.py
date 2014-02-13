@@ -189,7 +189,7 @@ class ND_Estimator:
         else:
             P = Pool(processes=num_processes,)
             print ' >>> [debug] Fitting training data in parallel with',num_processes,'processes... '
-            M = meta_coeff_Map(self.degree)
+            M = meta_coeff_Map(self.degree) # pick a pre-built map function here?
 
             coeffs = P.map(M, partitioned(self.Xs, num_processes))
             self.X_hats = list(itertools.chain(*coeffs))

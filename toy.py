@@ -186,6 +186,20 @@ def coeff_Map(X):
     return [fourier_coeffs(x, 20) for x in X]
 
 """
+Map function for parallel computation of cv errors
+"""
+def cv_err_Map(X):
+    (b, E) = X
+    net_err = 0.
+    for i in range(len(E.cv_X_hats)):
+        input_coeffs = E.cv_X_hats[i]
+        target_coeffs = E.cv_Y_hats[i]
+        Y0_coeffs = E.regress(input_coeffs, b=b)
+        net_err += L2_distance(target_coeffs, Y0_coeffs)
+    avg_err = net_err / (1.*len(self.cv_Xs))
+    return avg_err
+
+"""
 Map function for parallel computation of test errors
 """
 def err_Map(X):
@@ -652,15 +666,16 @@ def test():
 
 def demo(num_plots = 2):
 
-    M, eta = 10000, 10000
+    #M, eta = 10000, 10000
+    M, eta = 1000, 10000
 
     print
     print ' > [debug] Making new toyData object...'
     tD = toyData(M = M, eta = eta)
 
-    print
-    print ' > [debug] Generating toy training data...'
-    tD.make_samples()
+    #print
+    #print ' > [debug] Generating toy training data...'
+    #tD.make_samples()
 
     print
     print ' > [debug] Writing toy data to file'
