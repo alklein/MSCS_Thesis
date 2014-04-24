@@ -293,6 +293,28 @@ def test_errs_3D(E, test_Xs, test_Ys):
     return errs
 
 """
+Given an estimator E, input samples (test_Xs), and output samples (test_Ys),
+nonparametrically estimates the samples and performs the regression;
+returns the vector of errors.
+
+For comparison, errors are also computed for a dummy function 
+(that always maps to the uniform distribution).
+"""
+def dual_test_errs_3D(E, test_Xs, test_Ys):
+    test_X_hats = [E.nonparametric_estimation(sample, E.degree, E.dim) for sample in test_Xs]
+    test_Y_hats = [E.nonparametric_estimation(sample, E.degree, E.dim) for sample in test_Ys]
+    errs, dummy_errs = [], []
+    for i in range(len(test_X_hats)):
+        est_Y_hat = E.full_regress(test_X_hats[i])
+        dummy_Y_hat = [[1]] + [[0] for val in range(len(est_Y_hat) - 1)]
+
+        err = E.dist_fn(test_Y_hats[i], est_Y_hat)
+        dummy_err = E.dist_fn(test_Y_hats[i], dummy_Y_hat)
+        errs.append(err)
+        dummy_errs.append(dummy_err)
+    return (errs, dummy_errs)
+
+"""
 Custom function, like numpy's savetxt(), to forcibly write data to file.
 """
 def my_writetxt(filename, data):
@@ -727,7 +749,7 @@ def ID_demo(infile, bindex):
     dim = 3
     T = 3
     partial_lengths = [10, 50, 100, 150, 200, 250]
-    errs = []
+    errs, dummy_errs = [], []
 
     for length in partial_lengths:
         
@@ -749,14 +771,18 @@ def ID_demo(infile, bindex):
         E.train(parallel=False)
 
         # compute average test error on test samples
-        avg_err = np.average(test_errs_3D(E, test_samples_in, test_samples_out))
+        (test_errs, dummy_test_errs) = dual_test_errs_3D(E, test_samples_in, test_samples_out)
+        avg_err = np.average(test_errs)
+        avg_dummy_err = np.average(dummy_test_errs)
         print
         print 'average test error:', avg_err
+        print 'average dummy test error:', avg_dummy_err
         errs.append(avg_err)
+        dummy_errs.append(avg_dummy_err)
 
     print
     for i in range(len(partial_lengths)):
-        print 'data length:', partial_lengths[i],'avg. test error:',errs[i]
+        print 'data length:', partial_lengths[i],'\tavg. test error:',errs[i],'\tavg. dummy error:',dummy_errs[i]
 
 """
 Preliminary demonstration of how to perform regression on simulation data.
