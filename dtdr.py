@@ -665,22 +665,24 @@ def compare_assignments():
 
 """
 Preliminary demonstration of how to learn the identity distribution on simulation data. 
+Infile should be a contiguous cube taken from the exact dataset.
 """
-def ID_demo():
+def ID_demo(infile, bindex):
 
-    num_bins = 18
-    bindex = [0, 0, 0]
+    # number of divisions used along each dimension
+    # when this cube was extracted from the simulation data
+    num_bins = 18 
 
-    (xmin, xmax) = constants.col_0_min_max
-    (ymin, ymax) = constants.col_1_min_max
-    (zmin, zmax) = constants.col_2_min_max
+    (xmin, xmax) = constants.exact_col_0_min_max
+    (ymin, ymax) = constants.exact_col_1_min_max
+    (zmin, zmax) = constants.exact_col_2_min_max
 
     binsz_x = (xmax - xmin)/num_bins
     binsz_y = (ymax - ymin)/num_bins
     binsz_z = (zmax - zmin)/num_bins
 
-    # rescale 
-
+    # number of divisions to make along each dimension
+    # when dividing this cube into training/testing data
     new_num_bins = 50
 
     new_xmin, new_xmax = xmin + bindex[0]*binsz_x, xmin + (bindex[0] + 1)*binsz_x
@@ -703,9 +705,9 @@ def ID_demo():
 
     new_bindices = manager.bindices_3D(new_num_bins)    
 
-    assignments = manager.assign_particles_3D('ex_bin_18.txt', new_bindices, new_xmin, new_ymin, new_zmin, new_binsz_x, new_binsz_y, new_binsz_z, new_num_bins, verbose=True)
+    assignments = manager.assign_particles_3D(infile, new_bindices, new_xmin, new_ymin, new_zmin, new_binsz_x, new_binsz_y, new_binsz_z, new_num_bins, verbose=True)
     input_ps = []
-    assignments = manager.assign_particles_3D('ex_bin_18.txt', new_bindices, new_xmin, new_ymin, new_zmin, new_binsz_x, new_binsz_y, new_binsz_z, new_num_bins, verbose=True, chunk=10000)
+    assignments = manager.assign_particles_3D(infile, new_bindices, new_xmin, new_ymin, new_zmin, new_binsz_x, new_binsz_y, new_binsz_z, new_num_bins, verbose=True, chunk=10000)
     for key in sorted(assignments.keys()):
         cur = assignments[key]
         if len(cur) >= 5: input_ps.append(cur)
@@ -851,7 +853,7 @@ def demo():
 
     #isolate_particles()
     #compare_assignments()
-    #ID_demo()
+    ID_demo('sim1_partial_exact_18.txt', [0, 0, 0])
     #regression_demo()
     pass
 
